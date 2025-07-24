@@ -89,58 +89,60 @@ export default function CheckInScreen() {
   );
 
   if (showPlacesList) {
+    // ✨ FIX: The root view now has both container and content styles.
+    // This gives it flex: 1 and the necessary padding, allowing the FlatList
+    // to correctly fill the remaining space.
     return (
-      <ThemedView style={styles.container}>
-        <ThemedView style={styles.content}>
-          <ThemedText type="title" style={styles.heading}>
-            Choose a place to check in
-          </ThemedText>
+      <ThemedView style={[styles.container, styles.content]}>
+        <ThemedText type="title" style={styles.heading}>
+          Choose a place to check in
+        </ThemedText>
 
-          <FlatList
-            data={mockPlaces}
-            renderItem={renderPlaceItem}
-            keyExtractor={(item) => item.id}
-            style={styles.placesList}
-            showsVerticalScrollIndicator={false}
-          />
-        </ThemedView>
+        <FlatList
+          data={mockPlaces}
+          renderItem={renderPlaceItem}
+          keyExtractor={(item) => item.id}
+          showsVerticalScrollIndicator={false}
+        />
       </ThemedView>
     );
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <ThemedView style={styles.content}>
-        <ThemedText type="title" style={styles.heading}>
-          Are you here?
-        </ThemedText>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.content}
+      showsVerticalScrollIndicator={false}
+    >
+      <ThemedText type="title" style={styles.heading}>
+        Are you here?
+      </ThemedText>
 
-        <ThemedView style={styles.locationContainer}>
-          <ThemedView style={styles.locationInfo}>
-            <Image
-              source={{ uri: mockLocation.photo }}
-              style={styles.locationImage}
-            />
-            <ThemedView style={styles.locationDetails}>
-              <ThemedText type="subtitle" style={styles.locationName}>
-                {mockLocation.name}
-              </ThemedText>
-              <ThemedText style={styles.locationAddress}>
-                {mockLocation.address}
-              </ThemedText>
-            </ThemedView>
+      <ThemedView style={styles.locationContainer}>
+        <ThemedView style={styles.locationInfo}>
+          <Image
+            source={{ uri: mockLocation.photo }}
+            style={styles.locationImage}
+          />
+          <ThemedView style={styles.locationDetails}>
+            <ThemedText type="subtitle" style={styles.locationName}>
+              {mockLocation.name}
+            </ThemedText>
+            <ThemedText style={styles.locationAddress}>
+              {mockLocation.address}
+            </ThemedText>
           </ThemedView>
         </ThemedView>
+      </ThemedView>
 
-        <ThemedView style={styles.buttonContainer}>
-          <TouchableOpacity style={styles.yesButton} onPress={handleYesPress}>
-            <ThemedText style={styles.yesButtonText}>Yes</ThemedText>
-          </TouchableOpacity>
+      <ThemedView style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.yesButton} onPress={handleYesPress}>
+          <ThemedText style={styles.yesButtonText}>Yes</ThemedText>
+        </TouchableOpacity>
 
-          <TouchableOpacity style={styles.noButton} onPress={handleNoPress}>
-            <ThemedText style={styles.noButtonText}>No</ThemedText>
-          </TouchableOpacity>
-        </ThemedView>
+        <TouchableOpacity style={styles.noButton} onPress={handleNoPress}>
+          <ThemedText style={styles.noButtonText}>No</ThemedText>
+        </TouchableOpacity>
       </ThemedView>
     </ScrollView>
   );
@@ -154,6 +156,7 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingTop: 60,
+    paddingBottom: 40, // Added padding for better spacing
   },
   heading: {
     textAlign: "center",
@@ -227,9 +230,6 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 18,
     fontWeight: "bold",
-  },
-  placesList: {
-    flex: 1,
   },
   placeItem: {
     backgroundColor: "#fff",
