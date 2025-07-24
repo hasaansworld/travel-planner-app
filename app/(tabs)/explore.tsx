@@ -1,110 +1,269 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { Image } from "expo-image";
+import React, { useState } from "react";
+import {
+  FlatList,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+} from "react-native";
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+import { ThemedText } from "@/components/ThemedText";
+import { ThemedView } from "@/components/ThemedView";
 
-export default function TabTwoScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
+// Mock data for locations
+const mockLocation = {
+  name: "Central Park",
+  address: "59th to 110th St, 5th to 8th Ave, New York, NY 10022",
+  photo:
+    "https://images.unsplash.com/photo-1541522651281-4e5572e7ef3c?w=400&h=300&fit=crop",
+};
+
+const mockPlaces = [
+  {
+    id: "1",
+    name: "Times Square",
+    address: "Times Square, New York, NY 10036",
+    photo:
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop",
+  },
+  {
+    id: "2",
+    name: "Brooklyn Bridge",
+    address: "Brooklyn Bridge, New York, NY 10038",
+    photo:
+      "https://images.unsplash.com/photo-1514565131-fce0801e5785?w=300&h=200&fit=crop",
+  },
+  {
+    id: "3",
+    name: "Statue of Liberty",
+    address: "Liberty Island, New York, NY 10004",
+    photo:
+      "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=300&h=200&fit=crop",
+  },
+  {
+    id: "4",
+    name: "Empire State Building",
+    address: "350 5th Ave, New York, NY 10118",
+    photo:
+      "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=300&h=200&fit=crop",
+  },
+  {
+    id: "5",
+    name: "High Line",
+    address: "High Line, New York, NY 10011",
+    photo:
+      "https://images.unsplash.com/photo-1571738525501-e2f6ce8089c0?w=300&h=200&fit=crop",
+  },
+];
+
+export default function CheckInScreen() {
+  const [showPlacesList, setShowPlacesList] = useState(false);
+
+  const handleYesPress = () => {
+    // Handle successful check-in
+    alert("Successfully checked in at " + mockLocation.name + "!");
+  };
+
+  const handleNoPress = () => {
+    setShowPlacesList(true);
+  };
+
+  const handlePlaceSelect = (place: (typeof mockPlaces)[0]) => {
+    alert("Checked in at " + place.name + "!");
+    setShowPlacesList(false);
+  };
+
+  const renderPlaceItem = ({ item }: { item: (typeof mockPlaces)[0] }) => (
+    <TouchableOpacity
+      style={styles.placeItem}
+      onPress={() => handlePlaceSelect(item)}
+    >
+      <Image source={{ uri: item.photo }} style={styles.placeItemImage} />
+      <ThemedView style={styles.placeItemInfo}>
+        <ThemedText type="defaultSemiBold" style={styles.placeItemName}>
+          {item.name}
+        </ThemedText>
+        <ThemedText style={styles.placeItemAddress}>{item.address}</ThemedText>
       </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
+    </TouchableOpacity>
+  );
+
+  if (showPlacesList) {
+    return (
+      <ThemedView style={styles.container}>
+        <ThemedView style={styles.content}>
+          <ThemedText type="title" style={styles.heading}>
+            Choose a place to check in
           </ThemedText>
+
+          <FlatList
+            data={mockPlaces}
+            renderItem={renderPlaceItem}
+            keyExtractor={(item) => item.id}
+            style={styles.placesList}
+            showsVerticalScrollIndicator={false}
+          />
+        </ThemedView>
+      </ThemedView>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.container}>
+      <ThemedView style={styles.content}>
+        <ThemedText type="title" style={styles.heading}>
+          Are you here?
         </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+
+        <ThemedView style={styles.locationContainer}>
+          <ThemedView style={styles.locationInfo}>
+            <Image
+              source={{ uri: mockLocation.photo }}
+              style={styles.locationImage}
+            />
+            <ThemedView style={styles.locationDetails}>
+              <ThemedText type="subtitle" style={styles.locationName}>
+                {mockLocation.name}
+              </ThemedText>
+              <ThemedText style={styles.locationAddress}>
+                {mockLocation.address}
+              </ThemedText>
+            </ThemedView>
+          </ThemedView>
+        </ThemedView>
+
+        <ThemedView style={styles.buttonContainer}>
+          <TouchableOpacity style={styles.yesButton} onPress={handleYesPress}>
+            <ThemedText style={styles.yesButtonText}>Yes</ThemedText>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.noButton} onPress={handleNoPress}>
+            <ThemedText style={styles.noButtonText}>No</ThemedText>
+          </TouchableOpacity>
+        </ThemedView>
+      </ThemedView>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  container: {
+    flex: 1,
+    backgroundColor: "#f5f5f5",
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+  content: {
+    padding: 20,
+    paddingTop: 60,
+  },
+  heading: {
+    textAlign: "center",
+    marginBottom: 30,
+    fontSize: 28,
+    fontWeight: "bold",
+  },
+  locationContainer: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 20,
+    marginBottom: 30,
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  locationInfo: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+  },
+  locationImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 8,
+    marginRight: 15,
+  },
+  locationDetails: {
+    flex: 1,
+    justifyContent: "flex-start",
+  },
+  locationName: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  locationAddress: {
+    fontSize: 14,
+    color: "#666",
+    lineHeight: 20,
+  },
+  buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 15,
+  },
+  yesButton: {
+    flex: 1,
+    backgroundColor: "#34C759",
+    borderRadius: 8,
+    padding: 15,
+    alignItems: "center",
+  },
+  yesButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  noButton: {
+    flex: 1,
+    backgroundColor: "#FF3B30",
+    borderRadius: 8,
+    padding: 15,
+    alignItems: "center",
+  },
+  noButtonText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  placesList: {
+    flex: 1,
+  },
+  placeItem: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  placeItemImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 8,
+    marginRight: 15,
+  },
+  placeItemInfo: {
+    flex: 1,
+  },
+  placeItemName: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  placeItemAddress: {
+    fontSize: 14,
+    color: "#666",
+    lineHeight: 18,
   },
 });
