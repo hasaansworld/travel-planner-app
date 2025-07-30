@@ -2,9 +2,21 @@ import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
+import { atom, useAtom } from "jotai";
 import React, { useEffect, useState } from "react";
 import { Dimensions, StyleSheet, TouchableOpacity, View } from "react-native";
 import MapView, { Region } from "react-native-maps";
+
+interface LocationData {
+  coords: {
+    latitude: number;
+    longitude: number;
+  };
+  name: string;
+}
+
+// Create the atom to store selected location data
+export const selectedLocationAtom = atom<LocationData | null>(null);
 
 interface LocationCoords {
   latitude: number;
@@ -21,6 +33,10 @@ export default function MapSelectionScreen() {
     initialLng: string;
     returnScreen: string;
   }>();
+
+  // Use Jotai atom for selected location
+  const [selectedLocationData, setSelectedLocationData] =
+    useAtom(selectedLocationAtom);
 
   const initialLocation = {
     latitude: parseFloat(initialLat),
@@ -92,10 +108,13 @@ export default function MapSelectionScreen() {
 
   // Handle confirm location button press
   const handleConfirmLocation = () => {
-    const locationData = {
+    const locationData: LocationData = {
       coords: selectedLocation,
       name: locationName,
     };
+
+    // Store the selected location data in Jotai atom
+    setSelectedLocationData(locationData);
 
     // Navigate back to the original screen with the selected location
     navigation.goBack();

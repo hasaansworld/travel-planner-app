@@ -3,9 +3,10 @@ import Slider from "@react-native-community/slider";
 import {
   useFocusEffect,
   useNavigation,
-  useRoute
+  useRoute,
 } from "@react-navigation/native";
 import * as Location from "expo-location";
+import { useAtom } from "jotai";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
@@ -19,6 +20,7 @@ import {
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useRouter } from "expo-router";
+import { selectedLocationAtom } from "../map-selection"; // Import the atom
 
 interface LocationCoords {
   latitude: number;
@@ -44,6 +46,9 @@ export default function TravelPlanningScreen() {
   const [locationPermissionGranted, setLocationPermissionGranted] =
     useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+
+  // Use Jotai atom for selected location from map
+  const [selectedLocationFromAtom] = useAtom(selectedLocationAtom);
 
   const navigation = useNavigation();
   const route = useRoute();
@@ -109,7 +114,16 @@ export default function TravelPlanningScreen() {
     requestLocationPermission();
   }, []);
 
-  // Handle navigation result from map screen
+  // Update place name when location is selected from Jotai atom
+  useEffect(() => {
+    if (selectedLocationFromAtom) {
+      setSelectedLocation(selectedLocationFromAtom);
+      // Only update place name field with the selected location name
+      setPlaceName(selectedLocationFromAtom.name || "");
+    }
+  }, [selectedLocationFromAtom]);
+
+  // Handle navigation result from map screen (keeping for backward compatibility)
   useFocusEffect(
     useCallback(() => {
       const params = route.params as any;
