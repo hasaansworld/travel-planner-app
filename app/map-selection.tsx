@@ -3,14 +3,8 @@ import { ThemedView } from "@/components/ThemedView";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import {
-    Dimensions,
-    StyleSheet,
-    TouchableOpacity,
-    View
-} from "react-native";
-import MapView, { Marker, Region } from "react-native-maps";
-
+import { Dimensions, StyleSheet, TouchableOpacity, View } from "react-native";
+import MapView, { Region } from "react-native-maps";
 
 interface LocationCoords {
   latitude: number;
@@ -39,9 +33,8 @@ export default function MapSelectionScreen() {
     latitudeDelta: 0.01,
     longitudeDelta: 0.01,
   });
-  const [selectedLocation, setSelectedLocation] = useState<LocationCoords>(
-    initialLocation
-  );
+  const [selectedLocation, setSelectedLocation] =
+    useState<LocationCoords>(initialLocation);
   const [locationName, setLocationName] = useState<string>("");
   const [isLoadingLocationName, setIsLoadingLocationName] = useState(false);
 
@@ -123,17 +116,12 @@ export default function MapSelectionScreen() {
         showsMyLocationButton={true}
         mapType="standard"
       >
-        <Marker
-          coordinate={selectedLocation}
-          title="Selected Location"
-          description={locationName || "Tap confirm to select this location"}
-        />
+        {/* Removed the Marker component */}
       </MapView>
 
-      {/* Fixed center crosshair */}
+      {/* Fixed center crosshair - updated to square box */}
       <View style={styles.crosshair}>
-        <View style={styles.crosshairHorizontal} />
-        <View style={styles.crosshairVertical} />
+        <View style={styles.crosshairBox} />
       </View>
 
       {/* Bottom panel with location info and buttons */}
@@ -184,24 +172,27 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: "50%",
     left: "50%",
-    width: 20,
-    height: 20,
-    marginTop: -10,
-    marginLeft: -10,
+    width: 24,
+    height: 24,
+    marginTop: -12,
+    marginLeft: -12,
     justifyContent: "center",
     alignItems: "center",
   },
-  crosshairHorizontal: {
-    position: "absolute",
-    width: 20,
-    height: 2,
-    backgroundColor: "#FF3B30",
-  },
-  crosshairVertical: {
-    position: "absolute",
-    width: 2,
-    height: 20,
-    backgroundColor: "#FF3B30",
+  crosshairBox: {
+    width: 24,
+    height: 24,
+    backgroundColor: "#34C759",
+    borderWidth: 4,
+    borderColor: "#fff",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   bottomPanel: {
     position: "absolute",
