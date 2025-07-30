@@ -1,6 +1,7 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Slider from "@react-native-community/slider";
-import React, { useState } from "react";
+import * as Location from "expo-location";
+import React, { useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
@@ -12,6 +13,11 @@ import {
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 
+interface LocationCoords {
+  latitude: number;
+  longitude: number;
+}
+
 export default function TravelPlanningScreen() {
   const [placeName, setPlaceName] = useState("");
   const [rating, setRating] = useState(3.0);
@@ -20,6 +26,70 @@ export default function TravelPlanningScreen() {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [message, setMessage] = useState("");
+  const [location, setLocation] = useState<LocationCoords | null>(null);
+  const [locationPermissionGranted, setLocationPermissionGranted] =
+    useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  // Request location permission and get current location
+  const requestLocationPermission = async () => {
+    try {
+      // Request foreground location permission
+      const { status } = await Location.requestForegroundPermissionsAsync();
+
+      if (status !== "granted") {
+        setLocationError("Location permission denied");
+        Alert.alert(
+          "Permission Denied",
+          "Location permission is required for this feature."
+        );
+        return;
+      }
+
+      console.log("Location permission granted");
+      setLocationPermissionGranted(true);
+      getCurrentLocation();
+    } catch (error) {
+      console.warn("Error requesting location permission:", error);
+      setLocationError("Failed to request location permission");
+    }
+  };
+
+  // Get current location
+  const getCurrentLocation = async () => {
+    try {
+      setLocationError(null);
+
+      const locationResult = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+        timeInterval: 10000,
+        distanceInterval: 10,
+      });
+
+      const coords = {
+        latitude: locationResult.coords.latitude,
+        longitude: locationResult.coords.longitude,
+      };
+
+      setLocation(coords);
+      console.log("Current location:", coords);
+      console.log(
+        `Latitude: ${coords.latitude}, Longitude: ${coords.longitude}`
+      );
+    } catch (error) {
+      console.log("Location error:", error);
+      setLocationError("Unable to get location");
+      Alert.alert(
+        "Location Error",
+        "Unable to get your current location. Please try again."
+      );
+    }
+  };
+
+  // Request location permission on component mount
+  useEffect(() => {
+    requestLocationPermission();
+  }, []);
 
   const handleCreatePlan = () => {
     if (!placeName.trim()) {
@@ -27,9 +97,15 @@ export default function TravelPlanningScreen() {
       return;
     }
 
+    const locationInfo = location
+      ? `\nCurrent Location: ${location.latitude.toFixed(
+          6
+        )}, ${location.longitude.toFixed(6)}`
+      : "\nLocation: Not available";
+
     Alert.alert(
       "Plan Created!",
-      `Place: ${placeName}\nRating: ${rating}\nRadius: ${radius}km\nDays: ${numberOfDays}\nDate: ${selectedDate.toDateString()}\nMessage: ${message}`
+      `Place: ${placeName}\nRating: ${rating}\nRadius: ${radius}km\nDays: ${numberOfDays}\nDate: ${selectedDate.toDateString()}\nMessage: ${message}${locationInfo}`
     );
   };
 

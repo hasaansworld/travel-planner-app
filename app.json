@@ -33,6 +33,13 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "This app uses location for travel planning.",
+          "locationWhenInUsePermission": "This app uses location for travel planning."
+        }
       ]
     ],
     "experiments": {
