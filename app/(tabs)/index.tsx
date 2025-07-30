@@ -1,25 +1,39 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import Slider from "@react-native-community/slider";
+import {
+  useFocusEffect,
+  useNavigation,
+  useRoute
+} from "@react-navigation/native";
 import * as Location from "expo-location";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  View,
 } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { useRouter } from "expo-router";
 
 interface LocationCoords {
   latitude: number;
   longitude: number;
 }
 
+interface SelectedLocation {
+  coords: LocationCoords;
+  name?: string;
+}
+
 export default function TravelPlanningScreen() {
   const [placeName, setPlaceName] = useState("");
+  const [selectedLocation, setSelectedLocation] =
+    useState<SelectedLocation | null>(null);
   const [rating, setRating] = useState(3.0);
   const [radius, setRadius] = useState(5);
   const [numberOfDays, setNumberOfDays] = useState(3);
@@ -30,6 +44,10 @@ export default function TravelPlanningScreen() {
   const [locationPermissionGranted, setLocationPermissionGranted] =
     useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+
+  const navigation = useNavigation();
+  const route = useRoute();
+  const router = useRouter();
 
   // Request location permission and get current location
   const requestLocationPermission = async () => {
@@ -91,13 +109,58 @@ export default function TravelPlanningScreen() {
     requestLocationPermission();
   }, []);
 
+  // Handle navigation result from map screen
+  useFocusEffect(
+    useCallback(() => {
+      const params = route.params as any;
+
+      if (params?.selectedLocation) {
+        const { coords, name } = params.selectedLocation;
+        setSelectedLocation({ coords, name });
+        setPlaceName(
+          name ||
+            `${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`
+        );
+
+        // Clear params after handling (must be done via navigation.setParams)
+        (navigation as any).setParams({ selectedLocation: null });
+      }
+    }, [route.params])
+  );
+
+  const handleChooseOnMap = () => {
+    // Navigate to map screen with current location as initial position
+    const initialLocation = selectedLocation?.coords ||
+      location || {
+        latitude: 37.78825,
+        longitude: -122.4324, // Default to San Francisco if no location available
+      };
+
+    router.push({
+      pathname: "/map-selection",
+      params: {
+        initialLat: initialLocation.latitude.toString(),
+        initialLng: initialLocation.longitude.toString(),
+        returnScreen: "/(tabs)/index",
+      },
+    });
+  };
+
   const handleCreatePlan = () => {
-    if (!placeName.trim()) {
-      Alert.alert("Error", "Please enter a place name");
+    const finalPlaceName = placeName.trim();
+    if (!finalPlaceName) {
+      Alert.alert(
+        "Error",
+        "Please enter a place name or choose a location on the map"
+      );
       return;
     }
 
-    const locationInfo = location
+    const locationInfo = selectedLocation
+      ? `\nSelected Location: ${selectedLocation.coords.latitude.toFixed(
+          6
+        )}, ${selectedLocation.coords.longitude.toFixed(6)}`
+      : location
       ? `\nCurrent Location: ${location.latitude.toFixed(
           6
         )}, ${location.longitude.toFixed(6)}`
@@ -105,7 +168,7 @@ export default function TravelPlanningScreen() {
 
     Alert.alert(
       "Plan Created!",
-      `Place: ${placeName}\nRating: ${rating}\nRadius: ${radius}km\nDays: ${numberOfDays}\nDate: ${selectedDate.toDateString()}\nMessage: ${message}${locationInfo}`
+      `Place: ${finalPlaceName}\nRating: ${rating}\nRadius: ${radius}km\nDays: ${numberOfDays}\nDate: ${selectedDate.toDateString()}\nMessage: ${message}${locationInfo}`
     );
   };
 
@@ -123,18 +186,34 @@ export default function TravelPlanningScreen() {
           Travel Planning
         </ThemedText>
 
-        {/* Place Name Input */}
+        {/* Place Name Input with Map Button */}
         <ThemedView style={styles.inputContainer}>
           <ThemedText type="subtitle" style={styles.label}>
             Place Name
           </ThemedText>
-          <TextInput
-            style={styles.textInput}
-            value={placeName}
-            onChangeText={setPlaceName}
-            placeholder="Enter destination"
-            placeholderTextColor="#999"
-          />
+          <View style={styles.placeInputRow}>
+            <TextInput
+              style={[styles.textInput, styles.placeInput]}
+              value={placeName}
+              onChangeText={setPlaceName}
+              placeholder="Enter destination or choose on map"
+              placeholderTextColor="#999"
+            />
+            <TouchableOpacity
+              style={styles.mapButton}
+              onPress={handleChooseOnMap}
+            >
+              <ThemedText style={styles.mapButtonText}>
+                Choose on Map
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+          {selectedLocation && (
+            <ThemedText style={styles.coordinatesText}>
+              Selected: {selectedLocation.coords.latitude.toFixed(6)},{" "}
+              {selectedLocation.coords.longitude.toFixed(6)}
+            </ThemedText>
+          )}
         </ThemedView>
 
         {/* Rating Slider */}
@@ -268,6 +347,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
+  placeInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  placeInput: {
+    flex: 1,
+  },
   textInput: {
     borderWidth: 1,
     borderColor: "#ddd",
@@ -276,6 +363,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: "#fff",
     color: "#333",
+  },
+  mapButton: {
+    backgroundColor: "#007AFF",
+    borderRadius: 8,
+    padding: 10,
+    minWidth: 120,
+    alignItems: "center",
+  },
+  mapButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  coordinatesText: {
+    marginTop: 5,
+    fontSize: 12,
+    color: "#666",
+    fontStyle: "italic",
   },
   messageInput: {
     height: 100,
