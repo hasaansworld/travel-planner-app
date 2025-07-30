@@ -51,6 +51,20 @@ export default function RootLayout() {
             },
           }}
         />
+        <Stack.Screen
+          name="show-plan"
+          options={{
+            title: "Travel Plan",
+            headerBackTitle: "Back",
+            headerStyle: {
+              backgroundColor: "#007AFF",
+            },
+            headerTintColor: "#fff",
+            headerTitleStyle: {
+              fontWeight: "bold",
+            },
+          }}
+        />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />

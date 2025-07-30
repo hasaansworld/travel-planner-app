@@ -7,19 +7,20 @@ import {
 } from "@react-navigation/native";
 import * as Location from "expo-location";
 import { useAtom } from "jotai";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useRouter } from "expo-router";
+import { placesApi } from "../../utils/api"; // Import the places API
 import { selectedLocationAtom } from "../map-selection"; // Import the atom
 
 interface LocationCoords {
@@ -32,13 +33,23 @@ interface SelectedLocation {
   name?: string;
 }
 
+interface AutocompleteSuggestion {
+  place_id: string;
+  text: string;
+  structured_formatting: {
+    main_text: string;
+    secondary_text: string;
+  };
+  types: string[];
+}
+
 export default function TravelPlanningScreen() {
   const [placeName, setPlaceName] = useState("");
   const [selectedLocation, setSelectedLocation] =
     useState<SelectedLocation | null>(null);
   const [rating, setRating] = useState(3.0);
   const [radius, setRadius] = useState(5);
-  const [numberOfDays, setNumberOfDays] = useState(3);
+  const [numberOfDays, setNumberOfDays] = useState(1);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [message, setMessage] = useState("");
@@ -46,6 +57,18 @@ export default function TravelPlanningScreen() {
   const [locationPermissionGranted, setLocationPermissionGranted] =
     useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
+
+  // Autocomplete states
+  const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [sessionToken] = useState(() =>
+    Math.random().toString(36).substring(7)
+  );
+
+  // Refs for debouncing and cancellation
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Use Jotai atom for selected location from map
   const [selectedLocationFromAtom] = useAtom(selectedLocationAtom);
@@ -109,6 +132,124 @@ export default function TravelPlanningScreen() {
     }
   };
 
+  // Fetch autocomplete suggestions
+  const fetchSuggestions = async (query: string) => {
+    if (query.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    try {
+      // Cancel previous request if it exists
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new abort controller
+      abortControllerRef.current = new AbortController();
+
+      setIsLoadingSuggestions(true);
+      console.log("Fetching suggestions for:", query);
+
+      const response = await placesApi.autocomplete(query, sessionToken);
+      console.log("Autocomplete response:", response);
+      console.log(typeof response);
+      console.log(response.success, response.data);
+
+      if (
+        response.status === "success" &&
+        response.suggestions &&
+        Array.isArray(response.suggestions)
+      ) {
+        console.log("Setting suggestions:", response.suggestions);
+        setSuggestions(response.suggestions);
+        setShowSuggestions(response.suggestions.length > 0);
+      } else {
+        console.log("No suggestions found or invalid response");
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    } catch (error: any) {
+      if (error.name !== "AbortError") {
+        console.error("Error fetching suggestions:", error);
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  };
+
+  // Handle place name input change with debouncing
+  const handlePlaceNameChange = (text: string) => {
+    setPlaceName(text);
+
+    // Clear previous timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    if (text.trim().length === 0) {
+      setSelectedLocation(null);
+    }
+    // Hide suggestions immediately when typing
+    if (text.trim().length < 2) {
+      setShowSuggestions(false);
+      setSuggestions([]);
+      return;
+    }
+
+    // Set new timeout for 3 seconds
+    debounceTimeoutRef.current = setTimeout(() => {
+      fetchSuggestions(text);
+    }, 1000);
+  };
+
+  // Handle suggestion selection
+  const handleSuggestionSelect = async (suggestion: AutocompleteSuggestion) => {
+    console.log("Selected suggestion:", suggestion);
+
+    // Set the main text (place name) in the input field
+    setPlaceName(suggestion.structured_formatting.main_text);
+    setShowSuggestions(false);
+    setSuggestions([]);
+
+    try {
+      console.log("Fetching place details for:", suggestion.place_id);
+      // Fetch place details to get coordinates
+      const response = await placesApi.placeDetails(suggestion.place_id);
+      console.log("Place details response:", response);
+
+      if (response.status === "success" && response.place) {
+        const place = response.place;
+        console.log("Setting selected location:", place);
+
+        setSelectedLocation({
+          coords: {
+            latitude: place.location.latitude,
+            longitude: place.location.longitude,
+          },
+          name: place.name,
+        });
+      } else {
+        console.error("Invalid place details response:", response);
+        Alert.alert(
+          "Error",
+          "Failed to get location details for selected place"
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching place details:", error);
+      Alert.alert("Error", "Failed to get location details for selected place");
+    }
+  };
+
   // Request location permission on component mount
   useEffect(() => {
     requestLocationPermission();
@@ -142,7 +283,22 @@ export default function TravelPlanningScreen() {
     }, [route.params])
   );
 
+  // Cleanup timeouts and abort controllers
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
   const handleChooseOnMap = () => {
+    // Hide suggestions when navigating to map
+    setShowSuggestions(false);
+
     // Navigate to map screen with current location as initial position
     const initialLocation = selectedLocation?.coords ||
       location || {
@@ -180,10 +336,22 @@ export default function TravelPlanningScreen() {
         )}, ${location.longitude.toFixed(6)}`
       : "\nLocation: Not available";
 
-    Alert.alert(
-      "Plan Created!",
-      `Place: ${finalPlaceName}\nRating: ${rating}\nRadius: ${radius}km\nDays: ${numberOfDays}\nDate: ${selectedDate.toDateString()}\nMessage: ${message}${locationInfo}`
-    );
+    router.push({
+      pathname: "/show-plan",
+      params: {
+        lat: selectedLocation?.coords.latitude,
+        long: selectedLocation?.coords.longitude,
+        radius: radius,
+        rating: rating,
+        numberOfDays: numberOfDays,
+        startDate: selectedDate.toISOString(),
+        message: message.trim(),
+      },
+    });
+    // Alert.alert(
+    //   "Plan Created!",
+    //   `Place: ${finalPlaceName}\nRating: ${rating}\nRadius: ${radius}km\nDays: ${numberOfDays}\nDate: ${selectedDate.toDateString()}\nMessage: ${message}${locationInfo}`
+    // );
   };
 
   const onDateChange = (event: any, date?: Date) => {
@@ -193,26 +361,77 @@ export default function TravelPlanningScreen() {
     }
   };
 
+  // Render suggestion item
+  const renderSuggestion = ({ item }: { item: AutocompleteSuggestion }) => (
+    <TouchableOpacity
+      style={styles.suggestionItem}
+      onPress={() => handleSuggestionSelect(item)}
+    >
+      <ThemedText style={styles.suggestionMainText}>
+        {item.structured_formatting.main_text}
+      </ThemedText>
+      <ThemedText style={styles.suggestionSecondaryText}>
+        {item.structured_formatting.secondary_text}
+      </ThemedText>
+    </TouchableOpacity>
+  );
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
       <ThemedView style={styles.content}>
         <ThemedText type="title" style={styles.title}>
           Travel Planning
         </ThemedText>
 
-        {/* Place Name Input with Map Button */}
+        {/* Place Name Input with Map Button and Autocomplete */}
         <ThemedView style={styles.inputContainer}>
           <ThemedText type="subtitle" style={styles.label}>
             Place Name
           </ThemedText>
           <View style={styles.placeInputRow}>
-            <TextInput
-              style={[styles.textInput, styles.placeInput]}
-              value={placeName}
-              onChangeText={setPlaceName}
-              placeholder="Enter destination or choose on map"
-              placeholderTextColor="#999"
-            />
+            <View style={styles.inputWrapper}>
+              <TextInput
+                style={[styles.textInput, styles.placeInput]}
+                value={placeName}
+                onChangeText={handlePlaceNameChange}
+                placeholder="Enter destination or choose on map"
+                placeholderTextColor="#999"
+                onFocus={() => {
+                  if (suggestions.length > 0) {
+                    setShowSuggestions(true);
+                  }
+                }}
+              />
+              {isLoadingSuggestions && (
+                <ThemedText style={styles.loadingText}>Searching...</ThemedText>
+              )}
+
+              {/* Autocomplete suggestions */}
+              {showSuggestions && suggestions.length > 0 && (
+                <View style={styles.suggestionsContainer}>
+                  <ScrollView
+                    nestedScrollEnabled={true}
+                    keyboardShouldPersistTaps="handled"
+                  >
+                    {suggestions.map((item) => (
+                      <TouchableOpacity
+                        key={item.place_id}
+                        style={styles.suggestionItem}
+                        onPress={() => handleSuggestionSelect(item)}
+                      >
+                        <ThemedText style={styles.suggestionMainText}>
+                          {item.structured_formatting.main_text}
+                        </ThemedText>
+                        <ThemedText style={styles.suggestionSecondaryText}>
+                          {item.structured_formatting.secondary_text}
+                        </ThemedText>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+
             <TouchableOpacity
               style={styles.mapButton}
               onPress={handleChooseOnMap}
@@ -222,6 +441,7 @@ export default function TravelPlanningScreen() {
               </ThemedText>
             </TouchableOpacity>
           </View>
+
           {selectedLocation && (
             <ThemedText style={styles.coordinatesText}>
               Selected: {selectedLocation.coords.latitude.toFixed(6)},{" "}
@@ -328,8 +548,13 @@ export default function TravelPlanningScreen() {
 
         {/* Create Plan Button */}
         <TouchableOpacity
-          style={styles.createButton}
+          style={[
+            styles.createButton,
+            (!selectedLocation || !message.trim()) &&
+              styles.createButtonDisabled,
+          ]}
           onPress={handleCreatePlan}
+          disabled={!selectedLocation || !message.trim()}
         >
           <ThemedText style={styles.createButtonText}>Create Plan</ThemedText>
         </TouchableOpacity>
@@ -346,6 +571,7 @@ const styles = StyleSheet.create({
   content: {
     padding: 20,
     paddingTop: 60,
+    paddingBottom: 180,
   },
   title: {
     textAlign: "center",
@@ -363,8 +589,12 @@ const styles = StyleSheet.create({
   },
   placeInputRow: {
     flexDirection: "row",
-    alignItems: "center",
+    alignItems: "flex-start",
     gap: 10,
+  },
+  inputWrapper: {
+    flex: 1,
+    position: "relative",
   },
   placeInput: {
     flex: 1,
@@ -378,12 +608,63 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     color: "#333",
   },
+  loadingText: {
+    position: "absolute",
+    right: 12,
+    top: 12,
+    fontSize: 12,
+    color: "#007AFF",
+  },
+  suggestionsContainer: {
+    position: "absolute",
+    top: 48,
+    left: 0,
+    right: 0,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    maxHeight: 200,
+    zIndex: 1000,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  suggestionsList: {
+    maxHeight: 200,
+  },
+  suggestionItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  suggestionMainText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#333",
+  },
+  suggestionSecondaryText: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 2,
+  },
+  debugText: {
+    fontSize: 10,
+    color: "#999",
+    marginTop: 2,
+  },
   mapButton: {
     backgroundColor: "#007AFF",
     borderRadius: 8,
     padding: 10,
     minWidth: 120,
     alignItems: "center",
+    marginTop: 0,
   },
   mapButtonText: {
     color: "#fff",
@@ -425,6 +706,9 @@ const styles = StyleSheet.create({
     padding: 15,
     alignItems: "center",
     marginTop: 20,
+  },
+  createButtonDisabled: {
+    backgroundColor: "#aaa",
   },
   createButtonText: {
     color: "#fff",
