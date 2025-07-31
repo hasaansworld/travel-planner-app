@@ -1,5 +1,6 @@
 import { ThemedText } from "@/components/ThemedText";
 import { planApi } from "@/utils/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -17,6 +18,7 @@ import {
 const placeholderImage =
   "https://hds.hel.fi/images/foundation/visual-assets/placeholders/image-m@3x.png";
 const screenWidth = Dimensions.get("window").width;
+const SETTINGS_KEY = "@user_settings";
 
 export default function ShowPlanScreen() {
   const {
@@ -39,6 +41,8 @@ export default function ShowPlanScreen() {
 
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState<boolean | null>(null);
+  const [selectedModel, setSelectedModel] = useState("llama");
+  
   const [planData, setPlanData] = useState<any[]>([]);
     const [newMessage, setNewMessage] = useState("");
     const[planID, setPlanID] = useState(-1);
@@ -51,6 +55,12 @@ export default function ShowPlanScreen() {
         setLoading(true);
         setSuccess(null);
 
+        const json = await AsyncStorage.getItem(SETTINGS_KEY);
+        if (json !== null) {
+          const settings = JSON.parse(json);
+          setSelectedModel(settings.model || "llama");
+        }
+
         const response = await planApi.getPlan({
           lat: parseFloat(lat),
           lon: parseFloat(long),
@@ -61,7 +71,7 @@ export default function ShowPlanScreen() {
           intent: message,
           user_id: 1,
           city_id: 1,
-          model: "llama",
+          model: selectedModel,
         });
 
         setPlanData((prev) => [...prev, { type: "plan", value: response }]);
@@ -77,7 +87,7 @@ export default function ShowPlanScreen() {
     }
 
     fetchPlan();
-  }, [lat, long, radius, rating, numberOfDays, startDate, message]);
+  }, [lat, long, radius, rating, numberOfDays, startDate, message, selectedModel]);
 
   // Handle place name input change with debouncing
   const handleMessageSend = async() => {
@@ -91,7 +101,7 @@ export default function ShowPlanScreen() {
             plan_id: planID,
             user_id: 1,
             message: newMessageValue,
-            model: "llama",
+            model: selectedModel,
           });
 
           setPlanData((prev) => [...prev, { type: "plan", value: response }]);

@@ -1,12 +1,15 @@
+import { IconSymbol } from "@/components/ui/IconSymbol";
 import * as Location from "expo-location";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
   FlatList,
   Image,
+  ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -14,6 +17,16 @@ import { placesApi } from "../../utils/api"; // adjust import as needed
 
 const placeholderImage =
   "https://hds.hel.fi/images/foundation/visual-assets/placeholders/image-m@3x.png";
+
+interface AutocompleteSuggestion {
+  place_id: string;
+  text: string;
+  structured_formatting: {
+    main_text: string;
+    secondary_text: string;
+  };
+  types: string[];
+}
 
 export default function CheckInScreen() {
   const [location, setLocation] = useState<{
@@ -24,6 +37,21 @@ export default function CheckInScreen() {
   const [loading, setLoading] = useState(true);
   const [checkInSuccess, setCheckInSuccess] = useState(false);
   const [viewingAlternatives, setViewingAlternatives] = useState(false);
+
+  // Manual check-in states
+  const [manualPlaceName, setManualPlaceName] = useState("");
+  const [suggestions, setSuggestions] = useState<AutocompleteSuggestion[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
+  const [sessionToken] = useState(() =>
+    Math.random().toString(36).substring(7)
+  );
+  const [selectedManualPlace, setSelectedManualPlace] = useState<any>(null);
+  const [manualCheckInLoading, setManualCheckInLoading] = useState(false);
+
+  // Refs for debouncing and cancellation
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const userId = 125001; // Replace with dynamic user ID if needed
 
@@ -79,11 +107,176 @@ export default function CheckInScreen() {
     }
   };
 
+  // Fetch autocomplete suggestions for manual check-in
+  const fetchSuggestions = async (query: string) => {
+    if (query.trim().length < 2) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    try {
+      // Cancel previous request if it exists
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      // Create new abort controller
+      abortControllerRef.current = new AbortController();
+
+      setIsLoadingSuggestions(true);
+      console.log("Fetching suggestions for:", query);
+
+      const response = await placesApi.autocomplete(query, sessionToken);
+      console.log("Autocomplete response:", response);
+
+      if (
+        response.status === "success" &&
+        response.suggestions &&
+        Array.isArray(response.suggestions)
+      ) {
+        console.log("Setting suggestions:", response.suggestions);
+        setSuggestions(response.suggestions);
+        setShowSuggestions(response.suggestions.length > 0);
+      } else {
+        console.log("No suggestions found or invalid response");
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    } catch (error: any) {
+      if (error.name !== "AbortError") {
+        console.error("Error fetching suggestions:", error);
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  };
+
+  // Handle manual place name input change with debouncing
+  const handleManualPlaceNameChange = (text: string) => {
+    setManualPlaceName(text);
+    setSelectedManualPlace(null);
+
+    // Clear previous timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    // Cancel any ongoing request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    if (text.trim().length === 0) {
+      setSelectedManualPlace(null);
+    }
+
+    // Hide suggestions immediately when typing
+    if (text.trim().length < 2) {
+      setShowSuggestions(false);
+      setSuggestions([]);
+      return;
+    }
+
+    // Set new timeout for debounced search
+    debounceTimeoutRef.current = setTimeout(() => {
+      fetchSuggestions(text);
+    }, 1000);
+  };
+
+  // Handle suggestion selection for manual check-in
+  const handleSuggestionSelect = async (suggestion: AutocompleteSuggestion) => {
+    console.log("Selected suggestion:", suggestion);
+
+    // Set the main text (place name) in the input field
+    setManualPlaceName(suggestion.structured_formatting.main_text);
+    setShowSuggestions(false);
+    setSuggestions([]);
+
+    try {
+      console.log("Fetching place details for:", suggestion.place_id);
+      // Fetch place details to get coordinates
+      const response = await placesApi.placeDetails(suggestion.place_id);
+      console.log("Place details response:", response);
+
+      if (response.status === "success" && response.place) {
+        const place = response.place;
+        console.log("Setting selected manual place:", place);
+
+        setSelectedManualPlace({
+          name: place.name,
+          location: {
+            latitude: place.location.latitude,
+            longitude: place.location.longitude,
+          },
+          address: place.formatted_address || place.name,
+          types: place.types || ["establishment"],
+        });
+      } else {
+        console.error("Invalid place details response:", response);
+        Alert.alert(
+          "Error",
+          "Failed to get location details for selected place"
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching place details:", error);
+      Alert.alert("Error", "Failed to get location details for selected place");
+    }
+  };
+
+  // Handle manual check-in
+  const handleManualCheckIn = async () => {
+    if (!selectedManualPlace) {
+      Alert.alert("Error", "Please select a place from the search results.");
+      return;
+    }
+
+    try {
+      setManualCheckInLoading(true);
+      await placesApi.createUserVisit({
+        user_id: userId,
+        lat: selectedManualPlace.location.latitude,
+        long: selectedManualPlace.location.longitude,
+        name: selectedManualPlace.name,
+        place_type: selectedManualPlace.types?.[0] || "Unknown",
+        address: selectedManualPlace.address,
+      });
+
+      // Reset manual check-in form
+      setManualPlaceName("");
+      setSelectedManualPlace(null);
+      setSuggestions([]);
+      setShowSuggestions(false);
+
+      setCheckInSuccess(true);
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Manual check-in failed.");
+    } finally {
+      setManualCheckInLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchLocationAndPlaces();
   }, []);
 
-  if (loading) {
+  // Cleanup timeouts and abort controllers
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
+
+  if (loading && !manualCheckInLoading) {
     return (
       <View style={styles.centerContainer}>
         <ActivityIndicator size="large" color="#007AFF" />
@@ -96,7 +289,13 @@ export default function CheckInScreen() {
     return (
       <View style={styles.centerContainer}>
         <View style={styles.successCard}>
-          <Text style={styles.successIcon}>✅</Text>
+          <View>
+            <IconSymbol
+              name="checkmark.circle.fill"
+              size={80}
+              color="#34C759"
+            />
+          </View>
           <Text style={styles.successText}>Check-in successful!</Text>
           <TouchableOpacity
             style={styles.blueButton}
@@ -111,17 +310,92 @@ export default function CheckInScreen() {
 
   if (!places.length) {
     return (
-      <View style={styles.centerContainer}>
-        <View style={styles.emptyCard}>
-          <Text style={styles.emptyText}>No nearby places found.</Text>
-          <TouchableOpacity
-            style={styles.blueButton}
-            onPress={fetchLocationAndPlaces}
-          >
-            <Text style={styles.buttonText}>Retry</Text>
-          </TouchableOpacity>
+      <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+        <View style={styles.centerContainer}>
+          <View style={styles.emptyCard}>
+            <Text style={styles.emptyText}>No nearby places found.</Text>
+            <TouchableOpacity
+              style={styles.blueButton}
+              onPress={fetchLocationAndPlaces}
+            >
+              <Text style={styles.buttonText}>Retry</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Manual Check-in Section */}
+          <View style={styles.manualCheckInSection}>
+            <Text style={styles.manualCheckInHeading}>Manual check-in</Text>
+
+            <View style={styles.manualInputContainer}>
+              <Text style={styles.manualInputLabel}>Search for places</Text>
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.manualTextInput}
+                  value={manualPlaceName}
+                  onChangeText={handleManualPlaceNameChange}
+                  placeholder="Enter place name..."
+                  placeholderTextColor="#999"
+                  onFocus={() => {
+                    if (suggestions.length > 0) {
+                      setShowSuggestions(true);
+                    }
+                  }}
+                />
+                {isLoadingSuggestions && (
+                  <Text style={styles.loadingText}>Searching...</Text>
+                )}
+
+                {/* Autocomplete suggestions */}
+                {showSuggestions && suggestions.length > 0 && (
+                  <View style={styles.suggestionsContainer}>
+                    <ScrollView
+                      nestedScrollEnabled={true}
+                      keyboardShouldPersistTaps="handled"
+                    >
+                      {suggestions.map((item) => (
+                        <TouchableOpacity
+                          key={item.place_id}
+                          style={styles.suggestionItem}
+                          onPress={() => handleSuggestionSelect(item)}
+                        >
+                          <Text style={styles.suggestionMainText}>
+                            {item.structured_formatting.main_text}
+                          </Text>
+                          <Text style={styles.suggestionSecondaryText}>
+                            {item.structured_formatting.secondary_text}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                )}
+              </View>
+
+              {selectedManualPlace && (
+                <Text style={styles.selectedPlaceText}>
+                  Selected: {selectedManualPlace.name}
+                </Text>
+              )}
+
+              <TouchableOpacity
+                style={[
+                  styles.manualCheckInButton,
+                  (!selectedManualPlace || manualCheckInLoading) &&
+                    styles.manualCheckInButtonDisabled,
+                ]}
+                onPress={handleManualCheckIn}
+                disabled={!selectedManualPlace || manualCheckInLoading}
+              >
+                {manualCheckInLoading ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Text style={styles.buttonText}>Check-in</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
-      </View>
+      </ScrollView>
     );
   }
 
@@ -131,45 +405,123 @@ export default function CheckInScreen() {
   return (
     <View style={styles.container}>
       {!viewingAlternatives ? (
-        <View style={styles.mainContent}>
-          <Text style={styles.questionText}>Are you at</Text>
+        <ScrollView
+          style={styles.container}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.mainContent}>
+            <Text style={styles.questionText}>Are you at</Text>
 
-          <View style={styles.placeCard}>
-            <Image
-              source={{
-                uri:
-                  firstPlace.photos && firstPlace.photos.length > 0
-                    ? `https://places.googleapis.com/v1/${firstPlace.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}`
-                    : placeholderImage,
-              }}
-              style={styles.image}
-              resizeMode="cover"
-            />
+            <View style={styles.placeCard}>
+              <Image
+                source={{
+                  uri:
+                    firstPlace.photos && firstPlace.photos.length > 0
+                      ? `https://places.googleapis.com/v1/${firstPlace.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}`
+                      : placeholderImage,
+                }}
+                style={styles.image}
+                resizeMode="cover"
+              />
 
-            <View style={styles.placeInfo}>
-              <Text style={styles.placeName}>{firstPlace.name}</Text>
-              <Text style={styles.placeAddress}>{firstPlace.address}</Text>
+              <View style={styles.placeInfo}>
+                <Text style={styles.placeName}>{firstPlace.name}</Text>
+                <Text style={styles.placeAddress}>{firstPlace.address}</Text>
+              </View>
+            </View>
+
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={styles.greenButton}
+                onPress={() => checkIn(firstPlace)}
+              >
+                <Text style={styles.buttonText}>Yes, check me in</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.redButton}
+                onPress={() => setViewingAlternatives(true)}
+              >
+                <Text style={styles.buttonText}>No, show other places</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Manual Check-in Section */}
+            <View style={styles.manualCheckInSection}>
+              <Text style={styles.manualCheckInHeading}>Manual check-in</Text>
+
+              <View style={styles.manualInputContainer}>
+                <Text style={styles.manualInputLabel}>Search for places</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.manualTextInput}
+                    value={manualPlaceName}
+                    onChangeText={handleManualPlaceNameChange}
+                    placeholder="Enter place name..."
+                    placeholderTextColor="#999"
+                    onFocus={() => {
+                      if (suggestions.length > 0) {
+                        setShowSuggestions(true);
+                      }
+                    }}
+                  />
+                  {isLoadingSuggestions && (
+                    <Text style={styles.searchingText}>Searching...</Text>
+                  )}
+
+                  {/* Autocomplete suggestions */}
+                  {showSuggestions && suggestions.length > 0 && (
+                    <View style={styles.suggestionsContainer}>
+                      <ScrollView
+                        nestedScrollEnabled={true}
+                        keyboardShouldPersistTaps="handled"
+                      >
+                        {suggestions.map((item) => (
+                          <TouchableOpacity
+                            key={item.place_id}
+                            style={styles.suggestionItem}
+                            onPress={() => handleSuggestionSelect(item)}
+                          >
+                            <Text style={styles.suggestionMainText}>
+                              {item.structured_formatting.main_text}
+                            </Text>
+                            <Text style={styles.suggestionSecondaryText}>
+                              {item.structured_formatting.secondary_text}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
+                    </View>
+                  )}
+                </View>
+
+                {selectedManualPlace && (
+                  <Text style={styles.selectedPlaceText}>
+                    Selected: {selectedManualPlace.name}
+                  </Text>
+                )}
+
+                <TouchableOpacity
+                  style={[
+                    styles.manualCheckInButton,
+                    (!selectedManualPlace || manualCheckInLoading) &&
+                      styles.manualCheckInButtonDisabled,
+                  ]}
+                  onPress={handleManualCheckIn}
+                  disabled={!selectedManualPlace || manualCheckInLoading}
+                >
+                  {manualCheckInLoading ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={styles.buttonText}>Check-in</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={styles.greenButton}
-              onPress={() => checkIn(firstPlace)}
-            >
-              <Text style={styles.buttonText}>Yes, check me in</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.redButton}
-              onPress={() => setViewingAlternatives(true)}
-            >
-              <Text style={styles.buttonText}>No, show other places</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        </ScrollView>
       ) : (
-        <View style={styles.mainContent}>
+        <View style={[styles.mainContent, {paddingBottom: 20}]}>
           <Text style={styles.questionText}>Select your location:</Text>
 
           <TouchableOpacity
@@ -227,6 +579,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     paddingTop: 60,
+    paddingBottom: 350,
   },
   loadingText: {
     marginTop: 10,
@@ -262,6 +615,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+    marginBottom: 30,
   },
   emptyText: {
     fontSize: 16,
@@ -306,6 +660,7 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     gap: 15,
+    marginBottom: 40,
   },
   greenButton: {
     backgroundColor: "#34C759",
@@ -382,5 +737,109 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#666",
     lineHeight: 18,
+  },
+  // Manual check-in styles
+  manualCheckInSection: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 20,
+    marginTop: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  manualCheckInHeading: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#333",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  manualInputContainer: {
+    gap: 15,
+  },
+  manualInputLabel: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 5,
+  },
+  inputWrapper: {
+    position: "relative",
+  },
+  manualTextInput: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: "#fff",
+    color: "#333",
+  },
+  searchingText: {
+    position: "absolute",
+    right: 12,
+    top: 12,
+    fontSize: 12,
+    color: "#007AFF",
+  },
+  suggestionsContainer: {
+    position: "absolute",
+    top: 48,
+    left: 0,
+    right: 0,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    maxHeight: 200,
+    zIndex: 1000,
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  suggestionItem: {
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#eee",
+  },
+  suggestionMainText: {
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#333",
+  },
+  suggestionSecondaryText: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 2,
+  },
+  selectedPlaceText: {
+    fontSize: 12,
+    color: "#007AFF",
+    fontStyle: "italic",
+    marginTop: -10,
+  },
+  manualCheckInButton: {
+    backgroundColor: "#007AFF",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    alignItems: "center",
+    shadowColor: "#007AFF",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  manualCheckInButtonDisabled: {
+    backgroundColor: "#aaa",
+    shadowColor: "#aaa",
   },
 });

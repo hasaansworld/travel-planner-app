@@ -110,6 +110,20 @@ export const travelApi = {
 };
 
 export const placesApi = {
+  autocomplete: (query: string, sessionToken?: string) => {
+    const params = new URLSearchParams({ query });
+    if (sessionToken) {
+      params.append("session_token", sessionToken);
+    }
+    return api.get<AutocompleteResponse>(`/autocomplete?${params.toString()}`);
+  },
+  placeDetails: (placeId: string, fields?: string) => {
+    const params = new URLSearchParams({ place_id: placeId });
+    if (fields) {
+      params.append("fields", fields);
+    }
+    return api.get<PlaceDetailsResponse>(`/place-details?${params.toString()}`);
+},
   getNearbyPlaces: (params: { lat: number; long: number }) => {
     const query = new URLSearchParams();
     query.append("lat", params.lat.toString());
@@ -214,6 +228,7 @@ export const planApi = {
     if (params.model !== undefined) query.append("model", params.model);
 
     return api.get<{
+        travel_plan_id: number;
       updated_traval_plan: any;
     }>(`/update-plan?${query.toString()}`);
   },
