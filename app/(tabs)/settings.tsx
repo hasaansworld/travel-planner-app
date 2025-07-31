@@ -1,6 +1,8 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
+    Alert,
     ScrollView,
     StyleSheet,
     Switch,
@@ -12,17 +14,52 @@ import {
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 
+const SETTINGS_KEY = "@user_settings";
+
 export default function SettingsScreen() {
   const [selectedModel, setSelectedModel] = useState("gpt-4.1");
   const [apiKey, setApiKey] = useState("");
   const [backgroundTracking, setBackgroundTracking] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
 
-  const handleSave = () => {
-    // Save logic here
-    console.log("Model:", selectedModel);
-    console.log("API Key:", apiKey);
-    console.log("Background tracking:", backgroundTracking);
+  // Load settings from AsyncStorage on mount
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const json = await AsyncStorage.getItem(SETTINGS_KEY);
+        if (json !== null) {
+          const settings = JSON.parse(json);
+          setSelectedModel(settings.model || "gpt-4.1");
+          setApiKey(settings.apiKey || "");
+          setBackgroundTracking(settings.backgroundTracking || false);
+        }
+      } catch (error) {
+        console.error("Error loading settings:", error);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+
+    loadSettings();
+  }, []);
+
+  const handleSave = async () => {
+    const settings = {
+      model: selectedModel,
+      apiKey: apiKey.trim(),
+      backgroundTracking,
+    };
+
+    try {
+      await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      Alert.alert("Success", "Settings saved successfully!");
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      Alert.alert("Error", "Failed to save settings.");
+    }
   };
+
+  if (!isLoaded) return null; // Avoid flashing default values before load
 
   return (
     <ScrollView
@@ -43,7 +80,7 @@ export default function SettingsScreen() {
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={selectedModel}
-            onValueChange={(itemValue) => setSelectedModel(itemValue)}
+            onValueChange={setSelectedModel}
             style={styles.picker}
             dropdownIconColor="#333"
           >

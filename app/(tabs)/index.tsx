@@ -705,7 +705,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     padding: 15,
     alignItems: "center",
-    marginTop: 20,
+    marginTop: 0,
   },
   createButtonDisabled: {
     backgroundColor: "#aaa",
