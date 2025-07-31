@@ -17,7 +17,7 @@ import { ThemedView } from "@/components/ThemedView";
 const SETTINGS_KEY = "@user_settings";
 
 export default function SettingsScreen() {
-  const [selectedModel, setSelectedModel] = useState("gpt-4.1");
+  const [selectedModel, setSelectedModel] = useState("llama");
   const [apiKey, setApiKey] = useState("");
   const [backgroundTracking, setBackgroundTracking] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -29,7 +29,7 @@ export default function SettingsScreen() {
         const json = await AsyncStorage.getItem(SETTINGS_KEY);
         if (json !== null) {
           const settings = JSON.parse(json);
-          setSelectedModel(settings.model || "gpt-4.1");
+          setSelectedModel(settings.model || "llama");
           setApiKey(settings.apiKey || "");
           setBackgroundTracking(settings.backgroundTracking || false);
         }
