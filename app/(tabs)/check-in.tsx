@@ -67,11 +67,9 @@ export default function CheckInScreen() {
         return;
       }
 
-      // const userLocation = await Location.getCurrentPositionAsync({});
-      // const lat = userLocation.coords.latitude;
-      // const long = userLocation.coords.longitude;
-      const lat = 65.0593; // Example latitude
-      const long = 25.4663; // Example longitude
+      const userLocation = await Location.getCurrentPositionAsync({});
+      const lat = userLocation.coords.latitude;
+      const long = userLocation.coords.longitude;
       setLocation({ lat, long });
 
       const res = await placesApi.getNearbyPlaces({ lat, long });
