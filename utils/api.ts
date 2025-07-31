@@ -126,6 +126,73 @@ export const placesApi = {
   },
 };
 
+// Add to travelApi or create a new api group if you prefer
+export const planApi = {
+  getPlan: (params: {
+    user_id?: number;
+    city_id?: number;
+    lat?: number;
+    lon?: number;
+    radius_km?: number;
+    rating?: number;
+    intent?: string;
+    start_date?: string; // ISO string date
+    number_of_days?: number;
+    model?: string;
+  }) => {
+    const query = new URLSearchParams();
+
+    if (params.user_id !== undefined)
+      query.append("user_id", params.user_id.toString());
+    if (params.city_id !== undefined)
+      query.append("city_id", params.city_id.toString());
+    if (params.lat !== undefined) query.append("lat", params.lat.toString());
+    if (params.lon !== undefined) query.append("lon", params.lon.toString());
+    if (params.radius_km !== undefined)
+      query.append("radius_km", params.radius_km.toString());
+    if (params.rating !== undefined)
+      query.append("rating", params.rating.toString());
+    if (params.intent !== undefined) query.append("intent", params.intent);
+    if (params.start_date !== undefined)
+      query.append("start_date", params.start_date);
+    if (params.number_of_days !== undefined)
+      query.append("number_of_days", params.number_of_days.toString());
+    if (params.model !== undefined) query.append("model", params.model);
+
+    return api.get<{
+      travel_plan_id: number;
+      travel_plan: any;
+      unique_places_count: number;
+      processed_data: any;
+      start_date: string;
+      number_of_days: number;
+      day_name: string;
+      city: string;
+      country: string;
+      queries: string[];
+      user_activity: string;
+    }>(`/plan?${query.toString()}`);
+  },
+  updatePlan: (params: {
+    user_id?: number;
+    plan_id?: number;
+    message?: string;
+    model?: string;
+  }) => {
+    const query = new URLSearchParams();
+
+    if (params.user_id !== undefined)
+      query.append("user_id", params.user_id.toString());
+    if (params.plan_id !== undefined) query.append("plan_id", params.plan_id.toString());
+    if (params.message !== undefined) query.append("message", params.message);
+    if (params.model !== undefined) query.append("model", params.model);
+
+    return api.get<{
+      updated_traval_plan: any;
+    }>(`/update-plan?${query.toString()}`);
+  },
+};
+
 // Types
 interface User {
   id: string;
