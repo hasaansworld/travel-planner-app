@@ -14,7 +14,8 @@ import {
     View,
 } from "react-native";
 
-const placeholderImage = "https://via.placeholder.com/150";
+const placeholderImage =
+  "https://hds.hel.fi/images/foundation/visual-assets/placeholders/image-m@3x.png";
 const screenWidth = Dimensions.get("window").width;
 
 export default function ShowPlanScreen() {
@@ -95,6 +96,7 @@ export default function ShowPlanScreen() {
 
           setPlanData((prev) => [...prev, { type: "plan", value: response }]);
 
+          setPlanID(response.travel_plan_id);
           setSuccess(true);
         } catch (error) {
           console.error("Update Plan API error:", error);

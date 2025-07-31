@@ -1,267 +1,384 @@
-import { Image } from "expo-image";
-import React, { useState } from "react";
+import * as Location from "expo-location";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   FlatList,
-  ScrollView,
+  Image,
   StyleSheet,
+  Text,
   TouchableOpacity,
+  View,
 } from "react-native";
+import { placesApi } from "../../utils/api"; // adjust import as needed
 
-import { ThemedText } from "@/components/ThemedText";
-import { ThemedView } from "@/components/ThemedView";
-
-// Mock data for locations
-const mockLocation = {
-  name: "Central Park",
-  address: "59th to 110th St, 5th to 8th Ave, New York, NY 10022",
-  photo:
-    "https://images.unsplash.com/photo-1541522651281-4e5572e7ef3c?w=400&h=300&fit=crop",
-};
-
-const mockPlaces = [
-  {
-    id: "1",
-    name: "Times Square",
-    address: "Times Square, New York, NY 10036",
-    photo:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&h=200&fit=crop",
-  },
-  {
-    id: "2",
-    name: "Brooklyn Bridge",
-    address: "Brooklyn Bridge, New York, NY 10038",
-    photo:
-      "https://images.unsplash.com/photo-1514565131-fce0801e5785?w=300&h=200&fit=crop",
-  },
-  {
-    id: "3",
-    name: "Statue of Liberty",
-    address: "Liberty Island, New York, NY 10004",
-    photo:
-      "https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=300&h=200&fit=crop",
-  },
-  {
-    id: "4",
-    name: "Empire State Building",
-    address: "350 5th Ave, New York, NY 10118",
-    photo:
-      "https://images.unsplash.com/photo-1541339907198-e08756dedf3f?w=300&h=200&fit=crop",
-  },
-  {
-    id: "5",
-    name: "High Line",
-    address: "High Line, New York, NY 10011",
-    photo:
-      "https://images.unsplash.com/photo-1571738525501-e2f6ce8089c0?w=300&h=200&fit=crop",
-  },
-];
+const placeholderImage =
+  "https://hds.hel.fi/images/foundation/visual-assets/placeholders/image-m@3x.png";
 
 export default function CheckInScreen() {
-  const [showPlacesList, setShowPlacesList] = useState(false);
+  const [location, setLocation] = useState<{
+    lat: number;
+    long: number;
+  } | null>(null);
+  const [places, setPlaces] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [checkInSuccess, setCheckInSuccess] = useState(false);
+  const [viewingAlternatives, setViewingAlternatives] = useState(false);
 
-  const handleYesPress = () => {
-    // Handle successful check-in
-    alert("Successfully checked in at " + mockLocation.name + "!");
+  const userId = 125001; // Replace with dynamic user ID if needed
+
+  const fetchLocationAndPlaces = async () => {
+    setLoading(true);
+    setCheckInSuccess(false);
+    setViewingAlternatives(false);
+
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission denied", "Location permission is required.");
+        return;
+      }
+
+      // const userLocation = await Location.getCurrentPositionAsync({});
+      // const lat = userLocation.coords.latitude;
+      // const long = userLocation.coords.longitude;
+      const lat = 65.0593; // Example latitude
+      const long = 25.4663; // Example longitude
+      setLocation({ lat, long });
+
+      const res = await placesApi.getNearbyPlaces({ lat, long });
+      setPlaces(res.places || []);
+      places.forEach((place) => {
+        console.log("Photos for place:", place.name, place.photos);
+      });
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Failed to fetch location or places.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleNoPress = () => {
-    setShowPlacesList(true);
+  const checkIn = async (place: any) => {
+    try {
+      setLoading(true);
+      await placesApi.createUserVisit({
+        user_id: userId,
+        lat: place.location.latitude,
+        long: place.location.longitude,
+        name: place.name,
+        place_type: place.types?.[0] || "Unknown",
+        address: place.address,
+      });
+      setCheckInSuccess(true);
+    } catch (error) {
+      console.error(error);
+      Alert.alert("Error", "Check-in failed.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handlePlaceSelect = (place: (typeof mockPlaces)[0]) => {
-    alert("Checked in at " + place.name + "!");
-    setShowPlacesList(false);
-  };
+  useEffect(() => {
+    fetchLocationAndPlaces();
+  }, []);
 
-  const renderPlaceItem = ({ item }: { item: (typeof mockPlaces)[0] }) => (
-    <TouchableOpacity
-      style={styles.placeItem}
-      onPress={() => handlePlaceSelect(item)}
-    >
-      <Image source={{ uri: item.photo }} style={styles.placeItemImage} />
-      <ThemedView style={styles.placeItemInfo}>
-        <ThemedText type="defaultSemiBold" style={styles.placeItemName}>
-          {item.name}
-        </ThemedText>
-        <ThemedText style={styles.placeItemAddress}>{item.address}</ThemedText>
-      </ThemedView>
-    </TouchableOpacity>
-  );
-
-  if (showPlacesList) {
-    // ✨ FIX: The root view now has both container and content styles.
-    // This gives it flex: 1 and the necessary padding, allowing the FlatList
-    // to correctly fill the remaining space.
+  if (loading) {
     return (
-      <ThemedView style={[styles.container, styles.content]}>
-        <ThemedText type="title" style={styles.heading}>
-          Choose a place to check in
-        </ThemedText>
-
-        <FlatList
-          data={mockPlaces}
-          renderItem={renderPlaceItem}
-          keyExtractor={(item) => item.id}
-          showsVerticalScrollIndicator={false}
-        />
-      </ThemedView>
+      <View style={styles.centerContainer}>
+        <ActivityIndicator size="large" color="#007AFF" />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
     );
   }
 
+  if (checkInSuccess) {
+    return (
+      <View style={styles.centerContainer}>
+        <View style={styles.successCard}>
+          <Text style={styles.successIcon}>✅</Text>
+          <Text style={styles.successText}>Check-in successful!</Text>
+          <TouchableOpacity
+            style={styles.blueButton}
+            onPress={fetchLocationAndPlaces}
+          >
+            <Text style={styles.buttonText}>Check in again</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  if (!places.length) {
+    return (
+      <View style={styles.centerContainer}>
+        <View style={styles.emptyCard}>
+          <Text style={styles.emptyText}>No nearby places found.</Text>
+          <TouchableOpacity
+            style={styles.blueButton}
+            onPress={fetchLocationAndPlaces}
+          >
+            <Text style={styles.buttonText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  const firstPlace = places[0];
+  const alternativePlaces = places.slice(1);
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.content}
-      showsVerticalScrollIndicator={false}
-    >
-      <ThemedText type="title" style={styles.heading}>
-        Are you here?
-      </ThemedText>
+    <View style={styles.container}>
+      {!viewingAlternatives ? (
+        <View style={styles.mainContent}>
+          <Text style={styles.questionText}>Are you at</Text>
 
-      <ThemedView style={styles.locationContainer}>
-        <ThemedView style={styles.locationInfo}>
-          <Image
-            source={{ uri: mockLocation.photo }}
-            style={styles.locationImage}
+          <View style={styles.placeCard}>
+            <Image
+              source={{
+                uri:
+                  firstPlace.photos && firstPlace.photos.length > 0
+                    ? `https://places.googleapis.com/v1/${firstPlace.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}`
+                    : placeholderImage,
+              }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+
+            <View style={styles.placeInfo}>
+              <Text style={styles.placeName}>{firstPlace.name}</Text>
+              <Text style={styles.placeAddress}>{firstPlace.address}</Text>
+            </View>
+          </View>
+
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.greenButton}
+              onPress={() => checkIn(firstPlace)}
+            >
+              <Text style={styles.buttonText}>Yes, check me in</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.redButton}
+              onPress={() => setViewingAlternatives(true)}
+            >
+              <Text style={styles.buttonText}>No, show other places</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      ) : (
+        <View style={styles.mainContent}>
+          <Text style={styles.questionText}>Select your location:</Text>
+
+          <TouchableOpacity
+            style={[styles.redButton, { marginBottom: 20 }]}
+            onPress={() => setViewingAlternatives(false)}
+          >
+            <Text style={styles.buttonText}>Go Back</Text>
+          </TouchableOpacity>
+          <FlatList
+            data={alternativePlaces}
+            keyExtractor={(item) => item.name + item.address}
+            showsVerticalScrollIndicator={false}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.alternativeCard}
+                onPress={() => checkIn(item)}
+              >
+                <Image
+                  source={{
+                    uri:
+                      item.photos && item.photos.length > 0
+                        ? `https://places.googleapis.com/v1/${item.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}`
+                        : placeholderImage,
+                  }}
+                  style={styles.alternativeImage}
+                  resizeMode="cover"
+                />
+
+                <View style={styles.alternativeInfo}>
+                  <Text style={styles.alternativeName}>{item.name}</Text>
+                  <Text style={styles.alternativeAddress}>{item.address}</Text>
+                </View>
+              </TouchableOpacity>
+            )}
           />
-          <ThemedView style={styles.locationDetails}>
-            <ThemedText type="subtitle" style={styles.locationName}>
-              {mockLocation.name}
-            </ThemedText>
-            <ThemedText style={styles.locationAddress}>
-              {mockLocation.address}
-            </ThemedText>
-          </ThemedView>
-        </ThemedView>
-      </ThemedView>
-
-      <ThemedView style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.yesButton} onPress={handleYesPress}>
-          <ThemedText style={styles.yesButtonText}>Yes</ThemedText>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.noButton} onPress={handleNoPress}>
-          <ThemedText style={styles.noButtonText}>No</ThemedText>
-        </TouchableOpacity>
-      </ThemedView>
-    </ScrollView>
+        </View>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#f8f9fa",
   },
-  content: {
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
+    padding: 20,
+  },
+  mainContent: {
+    flex: 1,
     padding: 20,
     paddingTop: 60,
-    paddingBottom: 40, // Added padding for better spacing
   },
-  heading: {
+  loadingText: {
+    marginTop: 10,
+    fontSize: 16,
+    color: "#666",
+  },
+  successCard: {
+    backgroundColor: "white",
+    padding: 30,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: "#eee",
+    alignItems: "center",
+  },
+  successIcon: {
+    fontSize: 60,
+    marginBottom: 20,
+  },
+  successText: {
+    fontSize: 20,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 25,
+    textAlign: "center",
+  },
+  emptyCard: {
+    backgroundColor: "white",
+    padding: 30,
+    borderRadius: 16,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  emptyText: {
+    fontSize: 16,
+    color: "#666",
+    marginBottom: 25,
+    textAlign: "center",
+  },
+  questionText: {
     textAlign: "center",
     marginBottom: 30,
     fontSize: 28,
     fontWeight: "bold",
   },
-  locationContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 20,
+  placeCard: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    overflow: "hidden",
     marginBottom: 30,
-    elevation: 2,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  locationInfo: {
-    flexDirection: "row",
-    alignItems: "flex-start",
+  image: {
+    width: "100%",
+    height: 200,
   },
-  locationImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 8,
-    marginRight: 15,
+  placeInfo: {
+    padding: 20,
   },
-  locationDetails: {
-    flex: 1,
-    justifyContent: "flex-start",
-  },
-  locationName: {
-    fontSize: 20,
+  placeName: {
+    fontSize: 22,
     fontWeight: "bold",
+    color: "#333",
     marginBottom: 8,
   },
-  locationAddress: {
-    fontSize: 14,
+  placeAddress: {
+    fontSize: 16,
     color: "#666",
-    lineHeight: 20,
+    lineHeight: 22,
   },
   buttonContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
     gap: 15,
   },
-  yesButton: {
-    flex: 1,
+  greenButton: {
     backgroundColor: "#34C759",
-    borderRadius: 8,
-    padding: 15,
-    alignItems: "center",
-  },
-  yesButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  noButton: {
-    flex: 1,
-    backgroundColor: "#FF3B30",
-    borderRadius: 8,
-    padding: 15,
-    alignItems: "center",
-  },
-  noButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  placeItem: {
-    backgroundColor: "#fff",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     borderRadius: 12,
-    padding: 15,
+    alignItems: "center",
+    shadowColor: "#34C759",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  redButton: {
+    backgroundColor: "#FF3B30",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    shadowColor: "#FF3B30",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  blueButton: {
+    backgroundColor: "#007AFF",
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    shadowColor: "#007AFF",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  buttonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  alternativeCard: {
+    backgroundColor: "white",
+    borderRadius: 12,
     marginBottom: 15,
     flexDirection: "row",
-    alignItems: "center",
-    elevation: 2,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
     shadowRadius: 4,
+    elevation: 2,
+    padding: 12,
+    alignItems: "center",
   },
-  placeItemImage: {
+  alternativeImage: {
     width: 80,
     height: 80,
     borderRadius: 8,
-    marginRight: 15,
+    marginRight: 12,
   },
-  placeItemInfo: {
+  alternativeInfo: {
     flex: 1,
+    padding: 15,
+    justifyContent: "center",
   },
-  placeItemName: {
+  alternativeName: {
     fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 5,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 4,
   },
-  placeItemAddress: {
+  alternativeAddress: {
     fontSize: 14,
     color: "#666",
     lineHeight: 18,

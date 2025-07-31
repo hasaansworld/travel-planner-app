@@ -110,21 +110,47 @@ export const travelApi = {
 };
 
 export const placesApi = {
-  autocomplete: (query: string, sessionToken?: string) => {
-    const params = new URLSearchParams({ query });
-    if (sessionToken) {
-      params.append("session_token", sessionToken);
-    }
-    return api.get<AutocompleteResponse>(`/autocomplete?${params.toString()}`);
+  getNearbyPlaces: (params: { lat: number; long: number }) => {
+    const query = new URLSearchParams();
+    query.append("lat", params.lat.toString());
+    query.append("long", params.long.toString());
+
+    return api.get<{
+      places: {
+        name: string;
+        location: { latitude: number; longitude: number };
+        rating: number;
+        address: string;
+        types: string[];
+        photos: any;
+      }[];
+    }>(`/get-nearby-places?${query.toString()}`);
   },
-  placeDetails: (placeId: string, fields?: string) => {
-    const params = new URLSearchParams({ place_id: placeId });
-    if (fields) {
-      params.append("fields", fields);
-    }
-    return api.get<PlaceDetailsResponse>(`/place-details?${params.toString()}`);
+
+  createUserVisit: (params: {
+    user_id: number;
+    lat: number;
+    long: number;
+    name: string;
+    place_type: string;
+    address?: string;
+  }) => {
+    const query = new URLSearchParams();
+    query.append("user_id", params.user_id.toString());
+    query.append("lat", params.lat.toString());
+    query.append("long", params.long.toString());
+    query.append("name", params.name);
+    query.append("place_type", params.place_type);
+    if (params.address) query.append("address", params.address);
+
+    return api.get<{
+      success: boolean;
+      id: number;
+      history: string[];
+    }>(`/user-visits?${query.toString()}`);
   },
 };
+
 
 // Add to travelApi or create a new api group if you prefer
 export const planApi = {
