@@ -66,6 +66,9 @@ export default function TravelPlanningScreen() {
     Math.random().toString(36).substring(7)
   );
 
+  // Error state for API calls
+  const [apiError, setApiError] = useState<string | null>(null);
+
   // Refs for debouncing and cancellation
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -137,6 +140,7 @@ export default function TravelPlanningScreen() {
     if (query.trim().length < 2) {
       setSuggestions([]);
       setShowSuggestions(false);
+      setApiError(null); // Clear error when query is too short
       return;
     }
 
@@ -150,6 +154,7 @@ export default function TravelPlanningScreen() {
       abortControllerRef.current = new AbortController();
 
       setIsLoadingSuggestions(true);
+      setApiError(null); // Clear previous errors
       console.log("Fetching suggestions for:", query);
 
       const response = await placesApi.autocomplete(query, sessionToken);
@@ -165,16 +170,31 @@ export default function TravelPlanningScreen() {
         console.log("Setting suggestions:", response.suggestions);
         setSuggestions(response.suggestions);
         setShowSuggestions(response.suggestions.length > 0);
+        setApiError(null); // Clear error on success
       } else {
         console.log("No suggestions found or invalid response");
         setSuggestions([]);
         setShowSuggestions(false);
+        if (response.message) {
+          setApiError(response.message);
+        }
       }
     } catch (error: any) {
       if (error.name !== "AbortError") {
         console.error("Error fetching suggestions:", error);
         setSuggestions([]);
         setShowSuggestions(false);
+        
+        // Set user-friendly error message
+        if (error.message.includes('Network request failed')) {
+          setApiError("Network error: Please check your internet connection");
+        } else if (error.message.includes('timeout')) {
+          setApiError("Request timeout: Please try again");
+        } else if (error.message.includes('HTTP error')) {
+          setApiError("Server error: Unable to fetch suggestions");
+        } else {
+          setApiError("Failed to fetch suggestions. Please try again.");
+        }
       }
     } finally {
       setIsLoadingSuggestions(false);
@@ -197,15 +217,18 @@ export default function TravelPlanningScreen() {
 
     if (text.trim().length === 0) {
       setSelectedLocation(null);
+      setApiError(null); // Clear error when input is empty
     }
+
     // Hide suggestions immediately when typing
     if (text.trim().length < 2) {
       setShowSuggestions(false);
       setSuggestions([]);
+      setApiError(null); // Clear error for short queries
       return;
     }
 
-    // Set new timeout for 3 seconds
+    // Set new timeout for 1 second
     debounceTimeoutRef.current = setTimeout(() => {
       fetchSuggestions(text);
     }, 1000);
@@ -219,6 +242,7 @@ export default function TravelPlanningScreen() {
     setPlaceName(suggestion.structured_formatting.main_text);
     setShowSuggestions(false);
     setSuggestions([]);
+    setApiError(null); // Clear any existing errors
 
     try {
       console.log("Fetching place details for:", suggestion.place_id);
@@ -237,16 +261,24 @@ export default function TravelPlanningScreen() {
           },
           name: place.name,
         });
+        setApiError(null); // Clear error on success
       } else {
         console.error("Invalid place details response:", response);
-        Alert.alert(
-          "Error",
-          "Failed to get location details for selected place"
-        );
+        setApiError("Failed to get location details for selected place");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error fetching place details:", error);
-      Alert.alert("Error", "Failed to get location details for selected place");
+      
+      // Set user-friendly error message
+      if (error.message.includes('Network request failed')) {
+        setApiError("Network error: Please check your internet connection");
+      } else if (error.message.includes('timeout')) {
+        setApiError("Request timeout: Please try again");
+      } else if (error.message.includes('HTTP error')) {
+        setApiError("Server error: Unable to get place details");
+      } else {
+        setApiError("Failed to get location details. Please try again.");
+      }
     }
   };
 
@@ -261,6 +293,7 @@ export default function TravelPlanningScreen() {
       setSelectedLocation(selectedLocationFromAtom);
       // Only update place name field with the selected location name
       setPlaceName(selectedLocationFromAtom.name || "");
+      setApiError(null); // Clear any existing errors
     }
   }, [selectedLocationFromAtom]);
 
@@ -276,6 +309,7 @@ export default function TravelPlanningScreen() {
           name ||
             `${coords.latitude.toFixed(6)}, ${coords.longitude.toFixed(6)}`
         );
+        setApiError(null); // Clear any existing errors
 
         // Clear params after handling (must be done via navigation.setParams)
         (navigation as any).setParams({ selectedLocation: null });
@@ -298,6 +332,7 @@ export default function TravelPlanningScreen() {
   const handleChooseOnMap = () => {
     // Hide suggestions when navigating to map
     setShowSuggestions(false);
+    setApiError(null); // Clear any existing errors
 
     // Navigate to map screen with current location as initial position
     const initialLocation = selectedLocation?.coords ||
@@ -348,10 +383,6 @@ export default function TravelPlanningScreen() {
         message: message.trim(),
       },
     });
-    // Alert.alert(
-    //   "Plan Created!",
-    //   `Place: ${finalPlaceName}\nRating: ${rating}\nRadius: ${radius}km\nDays: ${numberOfDays}\nDate: ${selectedDate.toDateString()}\nMessage: ${message}${locationInfo}`
-    // );
   };
 
   const onDateChange = (event: any, date?: Date) => {
@@ -360,21 +391,6 @@ export default function TravelPlanningScreen() {
       setSelectedDate(date);
     }
   };
-
-  // Render suggestion item
-  const renderSuggestion = ({ item }: { item: AutocompleteSuggestion }) => (
-    <TouchableOpacity
-      style={styles.suggestionItem}
-      onPress={() => handleSuggestionSelect(item)}
-    >
-      <ThemedText style={styles.suggestionMainText}>
-        {item.structured_formatting.main_text}
-      </ThemedText>
-      <ThemedText style={styles.suggestionSecondaryText}>
-        {item.structured_formatting.secondary_text}
-      </ThemedText>
-    </TouchableOpacity>
-  );
 
   return (
     <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
@@ -441,6 +457,13 @@ export default function TravelPlanningScreen() {
               </ThemedText>
             </TouchableOpacity>
           </View>
+
+          {/* Error message display */}
+          {apiError && (
+            <ThemedText style={styles.errorText}>
+              {apiError}
+            </ThemedText>
+          )}
 
           {selectedLocation && (
             <ThemedText style={styles.coordinatesText}>
@@ -670,6 +693,13 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 14,
     fontWeight: "600",
+  },
+  errorText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: "#FF3B30",
+    fontWeight: "500",
+    lineHeight: 18,
   },
   coordinatesText: {
     marginTop: 5,
