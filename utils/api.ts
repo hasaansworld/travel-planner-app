@@ -97,6 +97,19 @@ export const userApi = {
     api.put<User>("/user/profile", userData),
   login: (credentials: LoginCredentials) =>
     api.post<AuthResponse>("/auth/login", credentials),
+  createUser: (params: { email: string; name: string }) => {
+    const query = new URLSearchParams();
+    query.append("email", params.email);
+    query.append("name", params.name);
+
+    return api.get<CreateUserResponse>(`/create-user?${query.toString()}`);
+  },
+  getUserPlans: (userId: number) => {
+    const query = new URLSearchParams();
+    query.append("user_id", userId.toString());
+
+    return api.get<UserPlansResponse>(`/user-plans?${query.toString()}`);
+  },
 };
 
 export const travelApi = {
@@ -299,4 +312,27 @@ interface PlaceDetails {
   types: string[];
   address?: string;
   opening_hours?: any;
+}
+
+// NEW: Types for the new endpoints
+interface CreateUserResponse {
+  user_id: number;
+}
+
+interface UserPlan {
+  travel_plan_id: number;
+  city: string;
+  country: string;
+  intent: string;
+  travel_date: string | null;
+  number_of_days: number;
+  rating: number;
+  radius_km: number;
+  created_at: string | null;
+  model: string;
+}
+
+interface UserPlansResponse {
+  plans: UserPlan[];
+  total_count: number;
 }

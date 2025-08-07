@@ -21,6 +21,7 @@ const MAPPING = {
   'map': 'map',
   'location': 'location-on',
   'gear': 'settings',
+  'clock': 'history',
 } as IconMapping;
 
 /**
