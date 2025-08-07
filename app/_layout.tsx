@@ -5,8 +5,8 @@ import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { Provider } from 'jotai';
 import { useState } from 'react';
-import LoginScreen from './login-screen';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -24,16 +24,17 @@ export default function RootLayout() {
     setIsLoggedIn(true);
   };
 
-  if (!isLoggedIn) {
-    return (
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <LoginScreen onLoginSuccess={handleLoginSuccess} />
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    );
-  }
+  // if (!isLoggedIn) {
+  //   return (
+  //     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+  //       <LoginScreen onLoginSuccess={handleLoginSuccess} />
+  //       <StatusBar style="auto" />
+  //     </ThemeProvider>
+  //   );
+  // }
 
   return (
+    <Provider>
     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -72,5 +73,6 @@ export default function RootLayout() {
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
+    </Provider>
   );
 }

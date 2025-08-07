@@ -6,7 +6,6 @@ import {
   useRoute,
 } from "@react-navigation/native";
 import * as Location from "expo-location";
-import { useAtom } from "jotai";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
@@ -17,11 +16,12 @@ import {
   View
 } from "react-native";
 
+import { selectedLocationAtom } from "@/atoms/global";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { useRouter } from "expo-router";
+import { useAtom } from "jotai";
 import { placesApi } from "../../utils/api"; // Import the places API
-import { selectedLocationAtom } from "../map-selection"; // Import the atom
 
 interface LocationCoords {
   latitude: number;
@@ -73,8 +73,9 @@ export default function TravelPlanningScreen() {
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
+
   // Use Jotai atom for selected location from map
-  const [selectedLocationFromAtom] = useAtom(selectedLocationAtom);
+  const [selectedLocationFromAtom, setSelectedLocationFromAtom] = useAtom(selectedLocationAtom);
 
   const navigation = useNavigation();
   const route = useRoute();
@@ -288,14 +289,14 @@ export default function TravelPlanningScreen() {
   }, []);
 
   // Update place name when location is selected from Jotai atom
-  useEffect(() => {
-    if (selectedLocationFromAtom) {
-      setSelectedLocation(selectedLocationFromAtom);
-      // Only update place name field with the selected location name
-      setPlaceName(selectedLocationFromAtom.name || "");
-      setApiError(null); // Clear any existing errors
-    }
-  }, [selectedLocationFromAtom]);
+  // useEffect(() => {
+  //   if (selectedLocationFromAtom) {
+  //     setSelectedLocation(selectedLocationFromAtom);
+  //     // Only update place name field with the selected location name
+  //     setPlaceName(selectedLocationFromAtom.name || "");
+  //     setApiError(null); // Clear any existing errors
+  //   }
+  // }, [selectedLocationFromAtom]);
 
   // Handle navigation result from map screen (keeping for backward compatibility)
   useFocusEffect(

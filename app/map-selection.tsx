@@ -1,8 +1,9 @@
+import { selectedLocationAtom } from "@/atoms/global";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import * as Location from "expo-location";
 import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
-import { atom, useAtom } from "jotai";
+import { useAtom } from "jotai";
 import React, { useEffect, useState } from "react";
 import { Dimensions, StyleSheet, TouchableOpacity, View } from "react-native";
 import MapView, { PROVIDER_GOOGLE, Region } from "react-native-maps";
@@ -15,8 +16,6 @@ interface LocationData {
   name: string;
 }
 
-// Create the atom to store selected location data
-export const selectedLocationAtom = atom<LocationData | null>(null);
 
 interface LocationCoords {
   latitude: number;

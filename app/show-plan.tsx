@@ -214,7 +214,7 @@ export default function ShowPlanScreen() {
                                 source={{
                                   uri:
                                     place.photos && place.photos.length > 0
-                                      ? `https://places.googleapis.com/v1/${place.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}`
+                                      ? `https://places.googleapis.com/v1/${place.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${process.env.EXPO_PUBLIC_PLACES_API_KEY}`
                                         : placeholderImage,
                                 }}
                                 style={styles.image}

@@ -415,7 +415,7 @@ export default function CheckInScreen() {
                 source={{
                   uri:
                     firstPlace.photos && firstPlace.photos.length > 0
-                      ? `https://places.googleapis.com/v1/${firstPlace.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}`
+                      ? `https://places.googleapis.com/v1/${firstPlace.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${process.env.EXPO_PUBLIC_PLACES_API_KEY}`
                       : placeholderImage,
                 }}
                 style={styles.image}
@@ -541,7 +541,7 @@ export default function CheckInScreen() {
                   source={{
                     uri:
                       item.photos && item.photos.length > 0
-                        ? `https://places.googleapis.com/v1/${item.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY}`
+                        ? `https://places.googleapis.com/v1/${item.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${process.env.EXPO_PUBLIC_PLACES_API_KEY}`
                         : placeholderImage,
                   }}
                   style={styles.alternativeImage}
@@ -564,7 +564,6 @@ export default function CheckInScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 50,
     backgroundColor: "#f8f9fa",
   },
   centerContainer: {
