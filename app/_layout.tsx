@@ -40,12 +40,14 @@ export default function RootLayout() {
         <Stack.Screen
           name="map-selection"
           options={{
+            headerShown: true,
             title: "Choose Location",
             headerBackTitle: "Back",
             headerStyle: {
               backgroundColor: "#007AFF",
             },
             headerTintColor: "#fff",
+            animation: 'slide_from_right',
             headerTitleStyle: {
               fontWeight: "bold",
             },
@@ -54,6 +56,7 @@ export default function RootLayout() {
         <Stack.Screen
           name="show-plan"
           options={{
+            headerShown: true,
             title: "Travel Plan",
             headerBackTitle: "Back",
             headerStyle: {

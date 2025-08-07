@@ -12,11 +12,23 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "com.ubicomp.travelplanner",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY"
+        }
+      },
+      "networkSecurityConfig": "./android/network_security_config.xml"
     },
     "web": {
       "bundler": "metro",
@@ -40,10 +52,17 @@
           "locationAlwaysAndWhenInUsePermission": "This app uses location for travel planning.",
           "locationWhenInUsePermission": "This app uses location for travel planning."
         }
-      ]
+      ],
+      ["@react-native-google-signin/google-signin"]
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b323f9a0-9abb-409a-8255-6cbda014a1a3"
+      }
     }
   }
 }

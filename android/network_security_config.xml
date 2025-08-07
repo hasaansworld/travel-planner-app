@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Allow HTTP traffic for your specific backend URLs -->
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- For the sslip.io domain -->
+        <domain includeSubdomains="true">q0okooc0w48gwccoc8owwokg.128.214.254.166.sslip.io</domain>
+        <!-- For the direct IP address -->
+        <domain includeSubdomains="true">128.214.254.166</domain>
+        <!-- Optional: Allow localhost for development -->
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>
+    </domain-config>
+    
+    <!-- Keep HTTPS enforcement for everything else -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <certificates src="system"/>
+        </trust-anchors>
+    </base-config>
+</network-security-config>

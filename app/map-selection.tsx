@@ -5,7 +5,7 @@ import { useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 import { atom, useAtom } from "jotai";
 import React, { useEffect, useState } from "react";
 import { Dimensions, StyleSheet, TouchableOpacity, View } from "react-native";
-import MapView, { Region } from "react-native-maps";
+import MapView, { PROVIDER_GOOGLE, Region } from "react-native-maps";
 
 interface LocationData {
   coords: {
@@ -134,6 +134,7 @@ export default function MapSelectionScreen() {
         showsUserLocation={true}
         showsMyLocationButton={true}
         mapType="standard"
+        provider={PROVIDER_GOOGLE}
       >
         {/* Removed the Marker component */}
       </MapView>
@@ -150,9 +151,7 @@ export default function MapSelectionScreen() {
             Selected Location
           </ThemedText>
           <ThemedText style={styles.locationName}>
-            {isLoadingLocationName
-              ? "Loading location name..."
-              : locationName || "Unknown location"}
+            {locationName || "Getting location..."}
           </ThemedText>
           <ThemedText style={styles.coordinates}>
             {selectedLocation.latitude.toFixed(6)},{" "}

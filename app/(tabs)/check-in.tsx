@@ -564,6 +564,7 @@ export default function CheckInScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    paddingTop: 50,
     backgroundColor: "#f8f9fa",
   },
   centerContainer: {
@@ -572,6 +573,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#f8f9fa",
     padding: 20,
+    minWidth: 300,
   },
   mainContent: {
     flex: 1,
@@ -614,6 +616,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     marginBottom: 30,
+    minWidth: 300,
   },
   emptyText: {
     fontSize: 16,
@@ -747,6 +750,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+    minWidth: 300,
   },
   manualCheckInHeading: {
     fontSize: 20,

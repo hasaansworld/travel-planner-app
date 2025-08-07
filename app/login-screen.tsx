@@ -1,33 +1,79 @@
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  isSuccessResponse,
+  statusCodes
+} from '@react-native-google-signin/google-signin';
 import { useTheme } from "@react-navigation/native";
 import React from "react";
 import {
-    Image,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from "react-native";
+
 
 export default function LoginScreen({ onLoginSuccess }: any) {
   const { colors } = useTheme();
 
-  const handleGoogleLogin = () => {
-    // Here you would implement actual Google OAuth
-    // For now, we'll just simulate a successful login
-    console.log("Login with Google pressed");
+  const signIn = async () => {
+    try {
 
-    // Simulate API call delay
-    setTimeout(() => {
-      onLoginSuccess();
-    }, 1000);
+      GoogleSignin.configure({
+        webClientId: process.env.EXPO_PUBLIC_WEB_ID,
+        scopes: ['profile', 'email'],
+        offlineAccess: false,
+      });
+      
+      await GoogleSignin.hasPlayServices();
+      
+      const response = await GoogleSignin.signIn();
+      
+      if (isSuccessResponse(response)) {
+        const userInfo = response.data.user;
+        onLoginSuccess(response.data.user);
+      } else {
+        console.log("Sign in was cancelled by user");
+      }
+    } catch (error) {
+      let errorMessage = "❌ ERROR: ";
+      
+      if (isErrorWithCode(error)) {
+        switch (error.code) {
+          case statusCodes.IN_PROGRESS:
+            errorMessage += "Sign in already in progress";
+            break;
+          case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
+            errorMessage += "Google Play Services not available or outdated";
+            break;
+          case statusCodes.SIGN_IN_CANCELLED:
+            errorMessage += "Sign in cancelled by user";
+            break;
+          case statusCodes.SIGN_IN_REQUIRED:
+            errorMessage += "Sign in required";
+            break;
+          default:
+            errorMessage += `Unknown error code: ${error.code}`;
+        }
+        errorMessage += `\nFull error: ${JSON.stringify(error, null, 2)}`;
+      } else {
+        const genericError = error as Error;
+        errorMessage += `Non-Google error: ${genericError.message || String(error)}`;
+      }
+      
+      console.error("Google Sign-In Error:", error);
+    }
   };
 
   return (
     <SafeAreaView
       style={[styles.container, { backgroundColor: colors.background }]}
     >
-      <View style={styles.content}>
+      <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
         {/* Logo/App Name Section */}
         <View style={styles.logoSection}>
           <Text style={[styles.appName, { color: colors.text }]}>
@@ -42,7 +88,7 @@ export default function LoginScreen({ onLoginSuccess }: any) {
         <View style={styles.loginSection}>
           <TouchableOpacity
             style={[styles.googleButton, { borderColor: colors.border }]}
-            onPress={handleGoogleLogin}
+            onPress={signIn}
             activeOpacity={0.8}
           >
             <View style={styles.googleButtonContent}>
@@ -63,7 +109,7 @@ export default function LoginScreen({ onLoginSuccess }: any) {
             By continuing, you agree to our Terms of Service and Privacy Policy
           </Text>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -72,10 +118,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  content: {
+  scrollView: {
     flex: 1,
+  },
+  content: {
+    flexGrow: 1,
     justifyContent: "center",
     paddingHorizontal: 32,
+    paddingVertical: 20,
   },
   logoSection: {
     alignItems: "center",
@@ -117,14 +167,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    paddingVertical: 8,
+    borderColor: "#ddd",
   },
   googleButtonContent: {
     flexDirection: "row",
@@ -145,6 +189,40 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginLeft: 8,
+  },
+  debugContainer: {
+    width: "100%",
+    borderRadius: 8,
+    borderWidth: 1,
+    padding: 12,
+    marginBottom: 20,
+    maxHeight: 300,
+  },
+  debugHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  debugTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  clearButton: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  clearButtonText: {
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  debugScroll: {
+    maxHeight: 200,
+  },
+  debugText: {
+    fontSize: 12,
+    fontFamily: "monospace",
+    lineHeight: 16,
   },
   termsText: {
     fontSize: 12,

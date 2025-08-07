@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "958636181947",
+    "project_id": "portfolio-82f0e",
+    "storage_bucket": "portfolio-82f0e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:958636181947:android:779164773a100bb8811c9e",
+        "android_client_info": {
+          "package_name": "com.ubicomp.travelplanner"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "958636181947-i7j2vtkdo8ssgisn7hjdkoe22r6q1rtn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.ubicomp.travelplanner",
+            "certificate_hash": "5c597a3442032c538ca9dd44e738ddb9efe99363"
+          }
+        },
+        {
+          "client_id": "958636181947-n7d8jqnkjjm2nnnfj80rgjdkl63kkbvc.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBAT5OO6KrKrncd-A3Fm4tQXvjddQg2hmM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "958636181947-n7d8jqnkjjm2nnnfj80rgjdkl63kkbvc.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
