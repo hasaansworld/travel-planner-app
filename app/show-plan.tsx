@@ -1,6 +1,8 @@
+import { userIdAtom } from '@/atoms/global';
 import { planApi, userApi } from "@/utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useAtom } from 'jotai';
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -40,6 +42,7 @@ export default function ShowPlanScreen() {
     plan_id: string;
   }>();
 
+  const [userId] = useAtom(userIdAtom);
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState<boolean | null>(null);
   const [selectedModel, setSelectedModel] = useState("llama");
@@ -54,6 +57,15 @@ export default function ShowPlanScreen() {
 
   // Check if we're viewing an existing plan or creating a new one
   const isViewingExistingPlan = !!plan_id;
+
+  // Early return if no userId is available
+  if (!userId || userId === -1) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.errorText}>Please log in to view travel plans</Text>
+      </View>
+    );
+  }
 
   // Format distance from meters to readable format
   const formatDistance = (distanceInMeters: number) => {
@@ -100,7 +112,7 @@ export default function ShowPlanScreen() {
       // Call the new endpoint to get plan by ID
       const response = await userApi.getPlanById({
         plan_id: parseInt(plan_id),
-        user_id: 1, // Get from your auth context
+        user_id: userId,
       });
 
       const planDataArray = [];
@@ -193,6 +205,7 @@ export default function ShowPlanScreen() {
         start_date: startDate,
         intent: message,
         user_id: 1,
+        user_id: userId,
         city_id: 1,
         model: selectedModel,
       });
@@ -214,12 +227,15 @@ export default function ShowPlanScreen() {
   };
 
   useEffect(() => {
-    if (isViewingExistingPlan) {
-      fetchExistingPlan();
-    } else {
-      fetchPlan();
+    // Only fetch if userId is available
+    if (userId && userId !== -1) {
+      if (isViewingExistingPlan) {
+        fetchExistingPlan();
+      } else {
+        fetchPlan();
+      }
     }
-  }, [plan_id, lat, long, radius, rating, numberOfDays, startDate, message, selectedModel]);
+  }, [userId, plan_id, lat, long, radius, rating, numberOfDays, startDate, message, selectedModel]);
 
   // Handle place name input change with debouncing
   const handleMessageSend = async() => {
@@ -233,7 +249,7 @@ export default function ShowPlanScreen() {
     try {
       const response = await planApi.updatePlan({
         plan_id: planID,
-        user_id: 1,
+        user_id: userId,
         message: newMessageValue,
         model: selectedModel,
       });

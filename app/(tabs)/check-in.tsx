@@ -1,5 +1,7 @@
+import { userIdAtom } from "@/atoms/global";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import * as Location from "expo-location";
+import { useAtom } from "jotai";
 import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -53,7 +55,7 @@ export default function CheckInScreen() {
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  const userId = 125001; // Replace with dynamic user ID if needed
+  const [userId] = useAtom(userIdAtom);
 
   const fetchLocationAndPlaces = async () => {
     setLoading(true);

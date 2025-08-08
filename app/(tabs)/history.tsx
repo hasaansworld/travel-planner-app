@@ -1,7 +1,9 @@
+import { userIdAtom } from "@/atoms/global";
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
 import { userApi } from "@/utils/api";
 import { useFocusEffect, useRouter } from "expo-router";
+import { useAtom } from "jotai";
 import React, { useCallback, useState } from "react";
 import {
     ActivityIndicator,
@@ -33,7 +35,7 @@ export default function PlansListScreen() {
   const router = useRouter();
 
   // Hardcoded user ID for now - you can get this from your auth context
-  const USER_ID = 1;
+  const [userId] = useAtom(userIdAtom);
 
   const fetchPlans = async (isRefresh = false) => {
     try {
@@ -44,7 +46,7 @@ export default function PlansListScreen() {
       }
       setError(null);
 
-      const response = await userApi.getUserPlans(USER_ID);
+      const response = await userApi.getUserPlans(userId);
       setPlans(response.plans || []);
     } catch (error: any) {
       console.error("Error fetching plans:", error);

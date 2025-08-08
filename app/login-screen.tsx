@@ -54,7 +54,7 @@ export default function LoginScreen({ onLoginSuccess }: any) {
           console.log('User created/found with ID:', createUserResponse.user_id);
           
           // Call success callback to navigate to next screen
-          onLoginSuccess({ newUserId: createUserResponse.user_id });
+          onLoginSuccess();
         } catch (apiError) {
           console.error('API Error creating user:', apiError);
           Alert.alert(
