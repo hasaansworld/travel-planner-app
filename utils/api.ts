@@ -97,6 +97,8 @@ export const userApi = {
     api.put<User>("/user/profile", userData),
   login: (credentials: LoginCredentials) =>
     api.post<AuthResponse>("/auth/login", credentials),
+  
+  // NEW: Create or get existing user
   createUser: (params: { email: string; name: string }) => {
     const query = new URLSearchParams();
     query.append("email", params.email);
@@ -104,11 +106,21 @@ export const userApi = {
 
     return api.get<CreateUserResponse>(`/create-user?${query.toString()}`);
   },
+
+  // NEW: Get all original plans for a user
   getUserPlans: (userId: number) => {
     const query = new URLSearchParams();
     query.append("user_id", userId.toString());
 
     return api.get<UserPlansResponse>(`/user-plans?${query.toString()}`);
+  },
+
+  // NEW: Get plan by ID with all updates
+  getPlanById: (params: { plan_id: number; user_id: number }) => {
+    const query = new URLSearchParams();
+    query.append("user_id", params.user_id.toString());
+
+    return api.get<GetPlanByIdResponse>(`/plan/${params.plan_id}?${query.toString()}`);
   },
 };
 
@@ -314,7 +326,6 @@ interface PlaceDetails {
   opening_hours?: any;
 }
 
-// NEW: Types for the new endpoints
 interface CreateUserResponse {
   user_id: number;
 }
@@ -335,4 +346,31 @@ interface UserPlan {
 interface UserPlansResponse {
   plans: UserPlan[];
   total_count: number;
+}
+
+
+interface PlanData {
+  travel_plan_id: number;
+  travel_plan: any;
+  city: string;
+  country: string;
+  intent: string;
+  start_date: string | null;
+  number_of_days: number;
+  rating: number;
+  radius_km: number;
+  lat: number;
+  lon: number;
+  model: string;
+  created_at: string | null;
+  update_for: number | null;
+  day_name: string | null;
+}
+
+interface GetPlanByIdResponse {
+  original_plan: PlanData;
+  update_plans: PlanData[];
+  total_updates: number;
+  requested_plan_id: number;
+  is_original: boolean;
 }
