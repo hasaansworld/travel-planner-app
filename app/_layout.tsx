@@ -4,9 +4,9 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 
+import { userIdAtom } from '@/atoms/global';
 import { useColorScheme } from '@/hooks/useColorScheme';
-import { Provider } from 'jotai';
-import { useState } from 'react';
+import { Provider, useAtom } from 'jotai';
 import LoginScreen from './login-screen';
 
 export default function RootLayout() {
@@ -14,18 +14,18 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userId, setUserId] = useAtom(userIdAtom);
 
   if (!loaded) {
     // Async font loading only occurs in development.
     return null;
   }
 
-  const handleLoginSuccess = () => {
-    setIsLoggedIn(true);
+  const handleLoginSuccess = ({newUserId}: {newUserId: number}) => {
+    setUserId(newUserId);
   };
 
-  if (!isLoggedIn) {
+  if (userId === -1) {
     return (
       <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
         <LoginScreen onLoginSuccess={handleLoginSuccess} />

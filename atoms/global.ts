@@ -10,3 +10,4 @@ interface LocationData {
 
 // Create the atom to store selected location data
 export const selectedLocationAtom = atom<LocationData | null>(null);
+export const userIdAtom = atom<number>(-1)

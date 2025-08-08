@@ -50,25 +50,11 @@ export default function LoginScreen({ onLoginSuccess }: any) {
             name: userInfo.name || userInfo.givenName || 'User'
           });
 
-          if (createUserResponse.success && createUserResponse.data.user_id) {
-            // Save user_id locally
-            await AsyncStorage.setItem('user_id', createUserResponse.data.user_id.toString());
-            
-            // Save user info for convenience
-            await AsyncStorage.setItem('user_info', JSON.stringify({
-              id: createUserResponse.data.user_id,
-              email: userInfo.email,
-              name: userInfo.name || userInfo.givenName || 'User',
-              photo: userInfo.photo
-            }));
-
-            console.log('User created/found with ID:', createUserResponse.data.user_id);
-            
-            // Call success callback to navigate to next screen
-            onLoginSuccess();
-          } else {
-            throw new Error('Failed to get user_id from response');
-          }
+          await AsyncStorage.setItem('user_id', createUserResponse.user_id.toString());
+          console.log('User created/found with ID:', createUserResponse.user_id);
+          
+          // Call success callback to navigate to next screen
+          onLoginSuccess({ newUserId: createUserResponse.user_id });
         } catch (apiError) {
           console.error('API Error creating user:', apiError);
           Alert.alert(
