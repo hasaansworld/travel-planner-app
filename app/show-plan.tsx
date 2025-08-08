@@ -199,7 +199,7 @@ export default function ShowPlanScreen() {
         user_id: userId,
         city_id: 1,
         model: selectedModel,
-        apiKey: apiKey,
+        api_key: apiKey,
       });
 
       setPlanData((prev) => [...prev, { type: "plan", value: response }]);
@@ -219,15 +219,12 @@ export default function ShowPlanScreen() {
   };
 
   useEffect(() => {
-    // Only fetch if userId is available
-    if (userId && userId !== -1) {
       if (isViewingExistingPlan) {
         fetchExistingPlan();
       } else {
         fetchPlan();
       }
-    }
-  }, [userId, plan_id, lat, long, radius, rating, numberOfDays, startDate, message, selectedModel]);
+  }, [plan_id, lat, long, radius, rating, numberOfDays, startDate, message, selectedModel]);
 
   // Handle place name input change with debouncing
   const handleMessageSend = async() => {
@@ -244,7 +241,7 @@ export default function ShowPlanScreen() {
         user_id: userId,
         message: newMessageValue,
         model: selectedModel,
-        apiKey: apiKey,
+        api_key: apiKey,
       });
 
       setPlanData((prev) => [...prev, { type: "plan", value: response }]);

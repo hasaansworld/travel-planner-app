@@ -204,7 +204,7 @@ export const planApi = {
     start_date?: string; // ISO string date
     number_of_days?: number;
     model?: string;
-    apiKey?: string;
+    api_key?: string;
   }) => {
     const query = new URLSearchParams();
 
@@ -224,6 +224,7 @@ export const planApi = {
     if (params.number_of_days !== undefined)
       query.append("number_of_days", params.number_of_days.toString());
     if (params.model !== undefined) query.append("model", params.model);
+    if (params.api_key !== undefined) query.append("api_key", params.api_key);
 
     return api.get<{
       travel_plan_id: number;
@@ -244,7 +245,7 @@ export const planApi = {
     plan_id?: number;
     message?: string;
     model?: string;
-    apiKey?: string;
+    api_key?: string;
   }) => {
     const query = new URLSearchParams();
 
@@ -253,6 +254,7 @@ export const planApi = {
     if (params.plan_id !== undefined) query.append("plan_id", params.plan_id.toString());
     if (params.message !== undefined) query.append("message", params.message);
     if (params.model !== undefined) query.append("model", params.model);
+    if (params.api_key !== undefined) query.append("api_key", params.api_key);
 
     return api.get<{
         travel_plan_id: number;
