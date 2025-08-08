@@ -204,6 +204,7 @@ export const planApi = {
     start_date?: string; // ISO string date
     number_of_days?: number;
     model?: string;
+    apiKey?: string;
   }) => {
     const query = new URLSearchParams();
 
@@ -243,6 +244,7 @@ export const planApi = {
     plan_id?: number;
     message?: string;
     model?: string;
+    apiKey?: string;
   }) => {
     const query = new URLSearchParams();
 

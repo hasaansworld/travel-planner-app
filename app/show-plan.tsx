@@ -1,4 +1,4 @@
-import { userIdAtom } from '@/atoms/global';
+import { apiKeyAtom, userIdAtom } from '@/atoms/global';
 import { planApi, userApi } from "@/utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -52,6 +52,7 @@ export default function ShowPlanScreen() {
   const [planID, setPlanID] = useState(-1);
   const [loadingUpdate, setLoadingUpdate] = useState(false);
   const [planLocation, setPlanLocation] = useState<{lat: number, lon: number} | null>(null);
+  const [apiKey, setApiKey] = useAtom(apiKeyAtom);
 
   const router = useRouter();
 
@@ -207,6 +208,7 @@ export default function ShowPlanScreen() {
         user_id: userId,
         city_id: 1,
         model: selectedModel,
+        apiKey: apiKey,
       });
 
       setPlanData((prev) => [...prev, { type: "plan", value: response }]);
@@ -251,6 +253,7 @@ export default function ShowPlanScreen() {
         user_id: userId,
         message: newMessageValue,
         model: selectedModel,
+        apiKey: apiKey,
       });
 
       setPlanData((prev) => [...prev, { type: "plan", value: response }]);

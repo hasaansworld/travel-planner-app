@@ -7,10 +7,12 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import 'react-native-reanimated';
 
-import { userIdAtom } from '@/atoms/global';
+import { apiKeyAtom, userIdAtom } from '@/atoms/global';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Provider, useAtom } from 'jotai';
 import LoginScreen from './login-screen';
+
+const SETTINGS_KEY = "@user_settings";
 
 function AppContent() {
   const colorScheme = useColorScheme();
@@ -18,29 +20,39 @@ function AppContent() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
   const [userId, setUserId] = useAtom(userIdAtom);
+  const [apiKey, setApiKey] = useAtom(apiKeyAtom);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-  // Check for stored user_id on app startup
+  // Check for stored user_id and settings on app startup
   useEffect(() => {
-    const checkStoredAuth = async () => {
+    const checkStoredData = async () => {
       try {
+        // Check for stored user_id
         const storedUserId = await AsyncStorage.getItem('user_id');
-        
         if (storedUserId) {
           const parsedUserId = parseInt(storedUserId, 10);
           if (!isNaN(parsedUserId)) {
             setUserId(parsedUserId);
           }
         }
+
+        // Check for stored settings (including API key)
+        const storedSettings = await AsyncStorage.getItem(SETTINGS_KEY);
+        if (storedSettings) {
+          const settings = JSON.parse(storedSettings);
+          if (settings.apiKey) {
+            setApiKey(settings.apiKey);
+          }
+        }
       } catch (error) {
-        console.error('Error checking stored auth:', error);
+        console.error('Error checking stored data:', error);
       } finally {
         setIsCheckingAuth(false);
       }
     };
 
-    checkStoredAuth();
-  }, [setUserId]);
+    checkStoredData();
+  }, [setUserId, setApiKey]);
 
   // Show loading screen while checking authentication
   if (!loaded || isCheckingAuth) {

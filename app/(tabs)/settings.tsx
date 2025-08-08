@@ -1,14 +1,16 @@
+import { apiKeyAtom } from '@/atoms/global';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
+import { useAtom } from 'jotai';
 import React, { useEffect, useState } from "react";
 import {
-    Alert,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
@@ -18,7 +20,8 @@ const SETTINGS_KEY = "@user_settings";
 
 export default function SettingsScreen() {
   const [selectedModel, setSelectedModel] = useState("llama");
-  const [apiKey, setApiKey] = useState("");
+  const [apiKey, setApiKey] = useAtom(apiKeyAtom);
+  const [localApiKey, setLocalApiKey] = useState("");
   const [backgroundTracking, setBackgroundTracking] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -30,7 +33,7 @@ export default function SettingsScreen() {
         if (json !== null) {
           const settings = JSON.parse(json);
           setSelectedModel(settings.model || "llama");
-          setApiKey(settings.apiKey || "");
+          setLocalApiKey(settings.apiKey || "");
           setBackgroundTracking(settings.backgroundTracking || false);
         }
       } catch (error) {
@@ -46,12 +49,17 @@ export default function SettingsScreen() {
   const handleSave = async () => {
     const settings = {
       model: selectedModel,
-      apiKey: apiKey.trim(),
+      apiKey: localApiKey.trim(),
       backgroundTracking,
     };
 
     try {
+      // Save to AsyncStorage
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      
+      // Update Jotai atom
+      setApiKey(localApiKey.trim());
+      
       Alert.alert("Success", "Settings saved successfully!");
     } catch (error) {
       console.error("Error saving settings:", error);
@@ -98,8 +106,8 @@ export default function SettingsScreen() {
         </ThemedText>
         <TextInput
           style={styles.textInput}
-          value={apiKey}
-          onChangeText={setApiKey}
+          value={localApiKey}
+          onChangeText={setLocalApiKey}
           placeholder="Enter your API key"
           placeholderTextColor="#999"
           autoCapitalize="none"
