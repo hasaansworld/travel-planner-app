@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Provider } from 'jotai';
 import { useState } from 'react';
+import LoginScreen from './login-screen';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -24,14 +25,14 @@ export default function RootLayout() {
     setIsLoggedIn(true);
   };
 
-  // if (!isLoggedIn) {
-  //   return (
-  //     <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-  //       <LoginScreen onLoginSuccess={handleLoginSuccess} />
-  //       <StatusBar style="auto" />
-  //     </ThemeProvider>
-  //   );
-  // }
+  if (!isLoggedIn) {
+    return (
+      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+        <LoginScreen onLoginSuccess={handleLoginSuccess} />
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    );
+  }
 
   return (
     <Provider>
@@ -64,6 +65,22 @@ export default function RootLayout() {
               backgroundColor: "#007AFF",
             },
             headerTintColor: "#fff",
+            headerTitleStyle: {
+              fontWeight: "bold",
+            },
+          }}
+        />
+        <Stack.Screen
+          name="place-detail"
+          options={{
+            headerShown: true,
+            title: "Place Location",
+            headerBackTitle: "Back",
+            headerStyle: {
+              backgroundColor: "#007AFF",
+            },
+            headerTintColor: "#fff",
+            animation: 'slide_from_right',
             headerTitleStyle: {
               fontWeight: "bold",
             },

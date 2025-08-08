@@ -1,6 +1,6 @@
 import { planApi, userApi } from "@/utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -48,17 +48,42 @@ export default function ShowPlanScreen() {
   const [newMessage, setNewMessage] = useState("");
   const [planID, setPlanID] = useState(-1);
   const [loadingUpdate, setLoadingUpdate] = useState(false);
+  const [planLocation, setPlanLocation] = useState<{lat: number, lon: number} | null>(null);
+
+  const router = useRouter();
 
   // Check if we're viewing an existing plan or creating a new one
   const isViewingExistingPlan = !!plan_id;
 
   // Format distance from meters to readable format
   const formatDistance = (distanceInMeters: number) => {
-    if (distanceInMeters < 1000) {
-      return `${Math.round(distanceInMeters)}m`;
-    } else {
+    if (distanceInMeters >= 1000) {
       return `${(distanceInMeters / 1000).toFixed(1)}km`;
+    } else {
+      return `${Math.round(distanceInMeters)}m`;
     }
+  };
+
+  // Handle place click
+  const handlePlaceClick = (place: any) => {
+    if (!place.location || !planLocation) {
+      console.log("Missing location data for place or plan");
+      return;
+    }
+
+    router.push({
+      pathname: "/place-detail",
+      params: {
+        placeName: place.name,
+        placeImage: place.photos && place.photos.length > 0 
+          ? `https://places.googleapis.com/v1/${place.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${process.env.EXPO_PUBLIC_PLACES_API_KEY}`
+          : placeholderImage,
+        placeLat: place.location.latitude.toString(),
+        placeLon: place.location.longitude.toString(),
+        planLat: planLocation.lat.toString(),
+        planLon: planLocation.lon.toString(),
+      },
+    });
   };
 
   const fetchExistingPlan = async () => {
@@ -82,6 +107,13 @@ export default function ShowPlanScreen() {
 
       // Add original plan's parameters as first message
       const originalPlan = response.original_plan;
+      
+      // Store plan location for place navigation
+      setPlanLocation({
+        lat: originalPlan.lat,
+        lon: originalPlan.lon
+      });
+
       const originalRequest = `📍 Location: ${originalPlan.lat?.toFixed(4)}, ${originalPlan.lon?.toFixed(4)}
 🔍 Search radius: ${originalPlan.radius_km}km
 ⭐ Minimum rating: ${originalPlan.rating}/5
@@ -125,6 +157,14 @@ export default function ShowPlanScreen() {
     try {
       setLoading(true);
       setSuccess(null);
+
+      // Store plan location for place navigation
+      if (lat && long) {
+        setPlanLocation({
+          lat: parseFloat(lat),
+          lon: parseFloat(long)
+        });
+      }
 
       // Add original parameters as first message if planData is empty
       if (planData.length === 0) {
@@ -284,7 +324,12 @@ export default function ShowPlanScreen() {
                             {dayData.overview.theme}
                           </Text>
                           {dayData.itinerary.map((place: any, idx: number) => (
-                            <View key={idx} style={styles.placeContainer}>
+                            <TouchableOpacity 
+                              key={idx} 
+                              style={styles.placeContainer}
+                              onPress={() => handlePlaceClick(place)}
+                              activeOpacity={0.7}
+                            >
                               <Image
                                 source={{
                                   uri:
@@ -316,7 +361,7 @@ export default function ShowPlanScreen() {
                                 </Text>
                                 {place.rating && renderStars(place.rating)}
                               </View>
-                            </View>
+                            </TouchableOpacity>
                           ))}
                         </View>
                       )

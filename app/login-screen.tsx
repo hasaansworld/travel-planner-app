@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   GoogleSignin,
   isErrorWithCode,
@@ -5,8 +6,10 @@ import {
   statusCodes
 } from '@react-native-google-signin/google-signin';
 import { useTheme } from "@react-navigation/native";
-import React from "react";
+import React, { useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   SafeAreaView,
   ScrollView,
@@ -15,14 +18,18 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-
+import { userApi } from '../utils/api';
 
 export default function LoginScreen({ onLoginSuccess }: any) {
   const { colors } = useTheme();
+  const [isLoading, setIsLoading] = useState(false);
 
   const signIn = async () => {
+    if (isLoading) return;
+    
+    setIsLoading(true);
+    
     try {
-
       GoogleSignin.configure({
         webClientId: process.env.EXPO_PUBLIC_WEB_ID,
         scopes: ['profile', 'email'],
@@ -35,7 +42,41 @@ export default function LoginScreen({ onLoginSuccess }: any) {
       
       if (isSuccessResponse(response)) {
         const userInfo = response.data.user;
-        onLoginSuccess(response.data.user);
+        
+        // Create or get existing user from backend
+        try {
+          const createUserResponse = await userApi.createUser({
+            email: userInfo.email,
+            name: userInfo.name || userInfo.givenName || 'User'
+          });
+
+          if (createUserResponse.success && createUserResponse.data.user_id) {
+            // Save user_id locally
+            await AsyncStorage.setItem('user_id', createUserResponse.data.user_id.toString());
+            
+            // Save user info for convenience
+            await AsyncStorage.setItem('user_info', JSON.stringify({
+              id: createUserResponse.data.user_id,
+              email: userInfo.email,
+              name: userInfo.name || userInfo.givenName || 'User',
+              photo: userInfo.photo
+            }));
+
+            console.log('User created/found with ID:', createUserResponse.data.user_id);
+            
+            // Call success callback to navigate to next screen
+            onLoginSuccess();
+          } else {
+            throw new Error('Failed to get user_id from response');
+          }
+        } catch (apiError) {
+          console.error('API Error creating user:', apiError);
+          Alert.alert(
+            'Login Error',
+            'Failed to create user account. Please try again.',
+            [{ text: 'OK' }]
+          );
+        }
       } else {
         console.log("Sign in was cancelled by user");
       }
@@ -66,6 +107,14 @@ export default function LoginScreen({ onLoginSuccess }: any) {
       }
       
       console.error("Google Sign-In Error:", error);
+      
+      Alert.alert(
+        'Sign In Error',
+        'There was a problem signing you in. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -87,20 +136,34 @@ export default function LoginScreen({ onLoginSuccess }: any) {
         {/* Login Button Section */}
         <View style={styles.loginSection}>
           <TouchableOpacity
-            style={[styles.googleButton, { borderColor: colors.border }]}
+            style={[
+              styles.googleButton, 
+              { 
+                borderColor: colors.border,
+                opacity: isLoading ? 0.7 : 1
+              }
+            ]}
             onPress={signIn}
             activeOpacity={0.8}
+            disabled={isLoading}
           >
             <View style={styles.googleButtonContent}>
-              {/* Google Icon Placeholder */}
-              <View style={styles.googleIcon}>
-                <Image
-                  source={require("../assets/images/google.png")}
-                  style={styles.googleIconImage}
+              {isLoading ? (
+                <ActivityIndicator 
+                  size="small" 
+                  color={colors.text} 
+                  style={styles.googleIcon}
                 />
-              </View>
+              ) : (
+                <View style={styles.googleIcon}>
+                  <Image
+                    source={require("../assets/images/google.png")}
+                    style={styles.googleIconImage}
+                  />
+                </View>
+              )}
               <Text style={[styles.googleButtonText, { color: colors.text }]}>
-                Continue with Google
+                {isLoading ? 'Signing in...' : 'Continue with Google'}
               </Text>
             </View>
           </TouchableOpacity>
