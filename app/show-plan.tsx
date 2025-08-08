@@ -204,7 +204,6 @@ export default function ShowPlanScreen() {
         number_of_days: parseInt(numberOfDays),
         start_date: startDate,
         intent: message,
-        user_id: 1,
         user_id: userId,
         city_id: 1,
         model: selectedModel,
