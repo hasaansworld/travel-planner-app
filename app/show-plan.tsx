@@ -59,15 +59,6 @@ export default function ShowPlanScreen() {
   // Check if we're viewing an existing plan or creating a new one
   const isViewingExistingPlan = !!plan_id;
 
-  // Early return if no userId is available
-  if (!userId || userId === -1) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>Please log in to view travel plans</Text>
-      </View>
-    );
-  }
-
   // Format distance from meters to readable format
   const formatDistance = (distanceInMeters: number) => {
     if (distanceInMeters >= 1000) {
