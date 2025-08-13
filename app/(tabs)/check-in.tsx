@@ -3,7 +3,7 @@ import { IconSymbol } from "@/components/ui/IconSymbol";
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from "expo-location";
 import { useAtom } from "jotai";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -64,7 +64,7 @@ export default function CheckInScreen() {
   const [userId] = useAtom(userIdAtom);
   const [placesApiKey] = useAtom(placesApiKeyAtom);
 
-  const fetchLocationAndPlaces = async () => {
+  const fetchLocationAndPlaces = useCallback(async () => {
     setLoading(true);
     setCheckInSuccess(false);
     setViewingAlternatives(false);
@@ -73,6 +73,7 @@ export default function CheckInScreen() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         Alert.alert("Permission denied", "Location permission is required.");
+        setLoading(false);
         return;
       }
 
@@ -86,17 +87,23 @@ export default function CheckInScreen() {
         long, 
         places_api_key: placesApiKey || ""
       });
-      setPlaces(res.places || []);
-      places.forEach((place) => {
-        console.log("Photos for place:", place.name, place.photos);
-      });
+      
+      const fetchedPlaces = res.places || [];
+      setPlaces(fetchedPlaces);
+      
+      // Fixed: Log places after they're set, and only if there are places
+      if (fetchedPlaces.length > 0) {
+        fetchedPlaces.forEach((place) => {
+          console.log("Photos for place:", place.name, place.photos);
+        });
+      }
     } catch (error) {
       console.error(error);
       Alert.alert("Error", "Failed to fetch location or places.");
     } finally {
       setLoading(false);
     }
-  };
+  }, [placesApiKey]); // Remove loading dependency
 
   const checkIn = async (place: any) => {
     try {
@@ -312,9 +319,10 @@ export default function CheckInScreen() {
     }
   };
 
+  // Fixed: Simplified useEffect - only run once when component mounts with required data
   useEffect(() => {
     fetchLocationAndPlaces();
-  }, []);
+  }, [fetchLocationAndPlaces]); // Empty dependency array - only run once on mount
 
   // Cleanup timeouts and abort controllers
   useEffect(() => {
