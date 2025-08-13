@@ -9,7 +9,17 @@ export default {
     userInterfaceStyle: "automatic",
     newArchEnabled: true,
     ios: {
-      supportsTablet: true
+      supportsTablet: true,
+      infoPlist: {
+        UIBackgroundModes: [
+          "location",
+          "background-fetch",
+          "background-processing"
+        ],
+        NSLocationAlwaysAndWhenInUseUsageDescription: "This app needs location access to automatically check you in to nearby places for travel planning.",
+        NSLocationWhenInUseUsageDescription: "This app needs location access to find nearby places for travel planning.",
+        NSLocationAlwaysUsageDescription: "This app needs background location access to automatically check you in to nearby places when the app is not active."
+      }
     },
     android: {
       package: "com.ubicomp.travelplanner",
@@ -21,7 +31,11 @@ export default {
       softwareKeyboardLayoutMode: "pan",
       permissions: [
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_LOCATION",
+        "android.permission.WAKE_LOCK"
       ],
       googleServicesFile: "./google-services.json",
       config: {
@@ -49,8 +63,12 @@ export default {
       [
         "expo-location",
         {
-          locationAlwaysAndWhenInUsePermission: "This app uses location for travel planning.",
-          locationWhenInUsePermission: "This app uses location for travel planning."
+          locationAlwaysAndWhenInUsePermission: "Allow this app to use your location for automatic check-ins and travel planning.",
+          locationAlwaysPermission: "Allow this app to use your location for automatic check-ins even when the app is in the background.",
+          locationWhenInUsePermission: "This app uses location for travel planning and check-ins.",
+          isIosBackgroundLocationEnabled: true,
+          isAndroidBackgroundLocationEnabled: true,
+          isAndroidForegroundServiceEnabled: true
         }
       ],
       [
@@ -62,7 +80,9 @@ export default {
           iosGoogleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY,
           androidGoogleMapsApiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
         }
-      ]
+      ],
+      "expo-task-manager",
+      "expo-background-fetch"
     ],
     experiments: {
       typedRoutes: true

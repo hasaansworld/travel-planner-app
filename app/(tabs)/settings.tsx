@@ -10,11 +10,12 @@ import {
   Switch,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 import { ThemedText } from "@/components/ThemedText";
 import { ThemedView } from "@/components/ThemedView";
+import { BackgroundLocationService } from "@/utils/backgroundLocationService";
 
 const SETTINGS_KEY = "@user_settings";
 
@@ -48,6 +49,44 @@ export default function SettingsScreen() {
 
     loadSettings();
   }, []);
+
+  const handleBackgroundTrackingToggle = async (enabled: boolean) => {
+
+    try {
+      if (enabled) {
+        const success = await BackgroundLocationService.startAll();
+        if (success) {
+          Alert.alert(
+            "Background Tracking Enabled",
+            "The app will now automatically check you in to nearby places every 15 minutes.",
+            [{ text: "OK" }]
+          );
+          setBackgroundTracking(true);
+        } else {
+          Alert.alert(
+            "Permission Required",
+            "Background location permission is required for automatic check-ins. Please grant permission in your device settings.",
+            [{ text: "OK" }]
+          );
+          setBackgroundTracking(false);
+          return;
+        }
+      } else {
+        await BackgroundLocationService.stopAll();
+        Alert.alert(
+          "Background Tracking Disabled",
+          "Automatic check-ins have been stopped.",
+          [{ text: "OK" }]
+        );
+        setBackgroundTracking(false);
+      }
+      
+    } catch (error) {
+      console.error("Error toggling background service:", error);
+      Alert.alert("Error", "Failed to toggle background service.");
+      setBackgroundTracking(!enabled); // Revert toggle
+    }
+  };
 
   const handleSave = async () => {
     const settings = {
@@ -142,7 +181,7 @@ export default function SettingsScreen() {
         <View style={styles.switchRow}>
           <Switch
             value={backgroundTracking}
-            onValueChange={setBackgroundTracking}
+            onValueChange={handleBackgroundTrackingToggle}
             trackColor={{ true: "#007AFF", false: "#ccc" }}
             thumbColor={backgroundTracking ? "#fff" : "#f4f3f4"}
           />

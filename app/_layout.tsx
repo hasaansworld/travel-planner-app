@@ -3,6 +3,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as TaskManager from 'expo-task-manager';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import 'react-native-reanimated';
@@ -11,6 +12,9 @@ import { apiKeyAtom, placesApiKeyAtom, userIdAtom } from '@/atoms/global';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Provider, useAtom } from 'jotai';
 import LoginScreen from './login-screen';
+
+// Import the background service to register tasks
+import '@/utils/backgroundLocationService';
 
 const SETTINGS_KEY = "@user_settings";
 
@@ -23,6 +27,20 @@ function AppContent() {
   const [, setApiKey] = useAtom(apiKeyAtom);
   const [, setPlacesApiKey] = useAtom(placesApiKeyAtom);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  // Initialize background tasks on app startup
+  useEffect(() => {
+    const initializeBackgroundTasks = async () => {
+      try {
+        const registeredTasks = await TaskManager.getRegisteredTasksAsync();
+        console.log('Registered background tasks:', registeredTasks);
+      } catch (error) {
+        console.error('Error initializing background tasks:', error);
+      }
+    };
+
+    initializeBackgroundTasks();
+  }, []);
 
   // Check for stored user_id and settings on app startup
   useEffect(() => {
