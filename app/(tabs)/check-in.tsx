@@ -1,4 +1,4 @@
-import { userIdAtom } from "@/atoms/global";
+import { placesApiKeyAtom, userIdAtom } from "@/atoms/global";
 import { IconSymbol } from "@/components/ui/IconSymbol";
 import * as Location from "expo-location";
 import { useAtom } from "jotai";
@@ -56,6 +56,7 @@ export default function CheckInScreen() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const [userId] = useAtom(userIdAtom);
+  const [placesApiKey] = useAtom(placesApiKeyAtom);
 
   const fetchLocationAndPlaces = async () => {
     setLoading(true);
@@ -74,7 +75,11 @@ export default function CheckInScreen() {
       const long = userLocation.coords.longitude;
       setLocation({ lat, long });
 
-      const res = await placesApi.getNearbyPlaces({ lat, long });
+      const res = await placesApi.getNearbyPlaces({ 
+        lat, 
+        long, 
+        places_api_key: placesApiKey || ""
+      });
       setPlaces(res.places || []);
       places.forEach((place) => {
         console.log("Photos for place:", place.name, place.photos);
@@ -127,7 +132,11 @@ export default function CheckInScreen() {
       setIsLoadingSuggestions(true);
       console.log("Fetching suggestions for:", query);
 
-      const response = await placesApi.autocomplete(query, sessionToken);
+      const response = await placesApi.autocomplete(
+        query, 
+        sessionToken, 
+        placesApiKey || ""
+      );
       console.log("Autocomplete response:", response);
 
       if (
@@ -198,7 +207,11 @@ export default function CheckInScreen() {
     try {
       console.log("Fetching place details for:", suggestion.place_id);
       // Fetch place details to get coordinates
-      const response = await placesApi.placeDetails(suggestion.place_id);
+      const response = await placesApi.placeDetails(
+        suggestion.place_id, 
+        undefined, 
+        placesApiKey || ""
+      );
       console.log("Place details response:", response);
 
       if (response.status === "success" && response.place) {
@@ -417,7 +430,7 @@ export default function CheckInScreen() {
                 source={{
                   uri:
                     firstPlace.photos && firstPlace.photos.length > 0
-                      ? `https://places.googleapis.com/v1/${firstPlace.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${process.env.EXPO_PUBLIC_PLACES_API_KEY}`
+                      ? `https://places.googleapis.com/v1/${firstPlace.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${placesApiKey || process.env.EXPO_PUBLIC_PLACES_API_KEY}`
                       : placeholderImage,
                 }}
                 style={styles.image}
@@ -543,7 +556,7 @@ export default function CheckInScreen() {
                   source={{
                     uri:
                       item.photos && item.photos.length > 0
-                        ? `https://places.googleapis.com/v1/${item.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${process.env.EXPO_PUBLIC_PLACES_API_KEY}`
+                        ? `https://places.googleapis.com/v1/${item.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${placesApiKey || process.env.EXPO_PUBLIC_PLACES_API_KEY}`
                         : placeholderImage,
                   }}
                   style={styles.alternativeImage}

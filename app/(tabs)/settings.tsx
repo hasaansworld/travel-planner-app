@@ -1,4 +1,4 @@
-import { apiKeyAtom } from '@/atoms/global';
+import { apiKeyAtom, placesApiKeyAtom } from '@/atoms/global';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Picker } from "@react-native-picker/picker";
 import { useAtom } from 'jotai';
@@ -20,8 +20,10 @@ const SETTINGS_KEY = "@user_settings";
 
 export default function SettingsScreen() {
   const [selectedModel, setSelectedModel] = useState("llama");
-  const [apiKey, setApiKey] = useAtom(apiKeyAtom);
+  const [, setApiKey] = useAtom(apiKeyAtom);
+  const [, setPlacesApiKeyAtom] = useAtom(placesApiKeyAtom);
   const [localApiKey, setLocalApiKey] = useState("");
+  const [placesApiKey, setPlacesApiKey] = useState("");
   const [backgroundTracking, setBackgroundTracking] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -34,6 +36,7 @@ export default function SettingsScreen() {
           const settings = JSON.parse(json);
           setSelectedModel(settings.model || "llama");
           setLocalApiKey(settings.apiKey || "");
+          setPlacesApiKey(settings.placesApiKey || "");
           setBackgroundTracking(settings.backgroundTracking || false);
         }
       } catch (error) {
@@ -50,6 +53,7 @@ export default function SettingsScreen() {
     const settings = {
       model: selectedModel,
       apiKey: localApiKey.trim(),
+      placesApiKey: placesApiKey.trim(),
       backgroundTracking,
     };
 
@@ -57,8 +61,9 @@ export default function SettingsScreen() {
       // Save to AsyncStorage
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
       
-      // Update Jotai atom
+      // Update Jotai atoms
       setApiKey(localApiKey.trim());
+      setPlacesApiKeyAtom(placesApiKey.trim());
       
       Alert.alert("Success", "Settings saved successfully!");
     } catch (error) {
@@ -109,6 +114,21 @@ export default function SettingsScreen() {
           value={localApiKey}
           onChangeText={setLocalApiKey}
           placeholder="Enter your API key"
+          placeholderTextColor="#999"
+          autoCapitalize="none"
+        />
+      </ThemedView>
+
+      {/* Places API Key Input */}
+      <ThemedView style={styles.inputContainer}>
+        <ThemedText type="subtitle" style={styles.label}>
+          Places API Key
+        </ThemedText>
+        <TextInput
+          style={styles.textInput}
+          value={placesApiKey}
+          onChangeText={setPlacesApiKey}
+          placeholder="Enter your Places API key"
           placeholderTextColor="#999"
           autoCapitalize="none"
         />

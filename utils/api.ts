@@ -135,24 +135,30 @@ export const travelApi = {
 };
 
 export const placesApi = {
-  autocomplete: (query: string, sessionToken?: string) => {
+  autocomplete: (query: string, sessionToken?: string, places_api_key?: string) => {
     const params = new URLSearchParams({ query });
     if (sessionToken) {
       params.append("session_token", sessionToken);
     }
+    if (places_api_key)
+      params.append("places_api_key", places_api_key)
     return api.get<AutocompleteResponse>(`/autocomplete?${params.toString()}`);
   },
-  placeDetails: (placeId: string, fields?: string) => {
+  placeDetails: (placeId: string, fields?: string, places_api_key?: string) => {
     const params = new URLSearchParams({ place_id: placeId });
     if (fields) {
       params.append("fields", fields);
     }
+    if (places_api_key)
+      params.append("places_api_key", places_api_key)
     return api.get<PlaceDetailsResponse>(`/place-details?${params.toString()}`);
 },
-  getNearbyPlaces: (params: { lat: number; long: number }) => {
+  getNearbyPlaces: (params: { lat: number; long: number, places_api_key: string }) => {
     const query = new URLSearchParams();
     query.append("lat", params.lat.toString());
     query.append("long", params.long.toString());
+    if (params.places_api_key)
+      query.append("places_api_key", params.places_api_key)
 
     return api.get<{
       places: {
@@ -205,6 +211,7 @@ export const planApi = {
     number_of_days?: number;
     model?: string;
     api_key?: string;
+    places_api_key?: string;
   }) => {
     const query = new URLSearchParams();
 
@@ -225,6 +232,7 @@ export const planApi = {
       query.append("number_of_days", params.number_of_days.toString());
     if (params.model !== undefined) query.append("model", params.model);
     if (params.api_key !== undefined) query.append("api_key", params.api_key);
+    if (params.places_api_key !== undefined) query.append("places_api_key", params.places_api_key);
 
     return api.get<{
       travel_plan_id: number;
@@ -246,6 +254,7 @@ export const planApi = {
     message?: string;
     model?: string;
     api_key?: string;
+    places_api_key?: string;
   }) => {
     const query = new URLSearchParams();
 
@@ -255,6 +264,7 @@ export const planApi = {
     if (params.message !== undefined) query.append("message", params.message);
     if (params.model !== undefined) query.append("model", params.model);
     if (params.api_key !== undefined) query.append("api_key", params.api_key);
+    if (params.places_api_key !== undefined) query.append("places_api_key", params.places_api_key);
 
     return api.get<{
         travel_plan_id: number;

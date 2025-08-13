@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import 'react-native-reanimated';
 
-import { apiKeyAtom, userIdAtom } from '@/atoms/global';
+import { apiKeyAtom, placesApiKeyAtom, userIdAtom } from '@/atoms/global';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { Provider, useAtom } from 'jotai';
 import LoginScreen from './login-screen';
@@ -20,7 +20,8 @@ function AppContent() {
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
   const [userId, setUserId] = useAtom(userIdAtom);
-  const [apiKey, setApiKey] = useAtom(apiKeyAtom);
+  const [, setApiKey] = useAtom(apiKeyAtom);
+  const [, setPlacesApiKey] = useAtom(placesApiKeyAtom);
   const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   // Check for stored user_id and settings on app startup
@@ -36,12 +37,16 @@ function AppContent() {
           }
         }
 
-        // Check for stored settings (including API key)
+        // Check for stored settings (including API keys)
         const storedSettings = await AsyncStorage.getItem(SETTINGS_KEY);
         if (storedSettings) {
           const settings = JSON.parse(storedSettings);
           if (settings.apiKey) {
             setApiKey(settings.apiKey);
+          }
+          if (settings.placesApiKey) {
+            console.log("Places key", settings.placesApiKey)
+            setPlacesApiKey(settings.placesApiKey);
           }
         }
       } catch (error) {
@@ -52,7 +57,7 @@ function AppContent() {
     };
 
     checkStoredData();
-  }, [setUserId, setApiKey]);
+  }, [setUserId, setApiKey, setPlacesApiKey]);
 
   // Show loading screen while checking authentication
   if (!loaded || isCheckingAuth) {

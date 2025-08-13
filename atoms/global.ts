@@ -12,3 +12,4 @@ interface LocationData {
 export const selectedLocationAtom = atom<LocationData | null>(null);
 export const userIdAtom = atom<number>(-1);
 export const apiKeyAtom = atom<string>("");
+export const placesApiKeyAtom = atom<string>("");

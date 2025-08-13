@@ -1,4 +1,4 @@
-import { apiKeyAtom, userIdAtom } from '@/atoms/global';
+import { apiKeyAtom, placesApiKeyAtom, userIdAtom } from '@/atoms/global';
 import { planApi, userApi } from "@/utils/api";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -52,7 +52,8 @@ export default function ShowPlanScreen() {
   const [planID, setPlanID] = useState(-1);
   const [loadingUpdate, setLoadingUpdate] = useState(false);
   const [planLocation, setPlanLocation] = useState<{lat: number, lon: number} | null>(null);
-  const [apiKey, setApiKey] = useAtom(apiKeyAtom);
+  const [apiKey,] = useAtom(apiKeyAtom);
+  const [placesApiKey,] = useAtom(placesApiKeyAtom);
 
   const router = useRouter();
 
@@ -80,7 +81,7 @@ export default function ShowPlanScreen() {
       params: {
         placeName: place.name,
         placeImage: place.photos && place.photos.length > 0 
-          ? `https://places.googleapis.com/v1/${place.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${process.env.EXPO_PUBLIC_PLACES_API_KEY}`
+          ? `https://places.googleapis.com/v1/${place.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${placesApiKey || process.env.EXPO_PUBLIC_PLACES_API_KEY}`
           : placeholderImage,
         placeLat: place.location.latitude.toString(),
         placeLon: place.location.longitude.toString(),
@@ -200,6 +201,7 @@ export default function ShowPlanScreen() {
         city_id: 1,
         model: selectedModel,
         api_key: apiKey,
+        places_api_key: placesApiKey,
       });
 
       setPlanData((prev) => [...prev, { type: "plan", value: response }]);
@@ -242,6 +244,7 @@ export default function ShowPlanScreen() {
         message: newMessageValue,
         model: selectedModel,
         api_key: apiKey,
+        places_api_key: placesApiKey,
       });
 
       setPlanData((prev) => [...prev, { type: "plan", value: response }]);
@@ -340,7 +343,7 @@ export default function ShowPlanScreen() {
                                 source={{
                                   uri:
                                     place.photos && place.photos.length > 0
-                                      ? `https://places.googleapis.com/v1/${place.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${process.env.EXPO_PUBLIC_PLACES_API_KEY}`
+                                      ? `https://places.googleapis.com/v1/${place.photos[0]}/media?maxHeightPx=400&maxWidthPx=400&key=${placesApiKey || process.env.EXPO_PUBLIC_PLACES_API_KEY}`
                                         : placeholderImage,
                                 }}
                                 style={styles.image}
