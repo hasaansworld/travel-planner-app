@@ -108,6 +108,7 @@ export default function CheckInScreen() {
         name: place.name,
         place_type: place.types?.[0] || "Unknown",
         address: place.address,
+        created_at: createDateTime(new Date()),
       });
       setCheckInSuccess(true);
     } catch (error) {
@@ -268,8 +269,12 @@ export default function CheckInScreen() {
       time.getHours(),
       time.getMinutes(),
       time.getSeconds()
-    );
-    return dateTime.toISOString();
+    ); 
+    // Get timezone offset in minutes and convert to milliseconds
+    const timezoneOffset = dateTime.getTimezoneOffset() * 60000;
+    // Adjust for timezone to get local time
+    const localTime = new Date(dateTime.getTime() - timezoneOffset);
+    return localTime.toISOString();
   };
 
   // Handle manual check-in
