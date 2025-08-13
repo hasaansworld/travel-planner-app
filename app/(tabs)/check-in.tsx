@@ -1,5 +1,6 @@
 import { placesApiKeyAtom, userIdAtom } from "@/atoms/global";
 import { IconSymbol } from "@/components/ui/IconSymbol";
+import DateTimePicker from '@react-native-community/datetimepicker';
 import * as Location from "expo-location";
 import { useAtom } from "jotai";
 import React, { useEffect, useRef, useState } from "react";
@@ -8,6 +9,7 @@ import {
   Alert,
   FlatList,
   Image,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -50,6 +52,10 @@ export default function CheckInScreen() {
   );
   const [selectedManualPlace, setSelectedManualPlace] = useState<any>(null);
   const [manualCheckInLoading, setManualCheckInLoading] = useState(false);
+
+  // Time picker states
+  const [selectedTime, setSelectedTime] = useState(new Date());
+  const [showTimePicker, setShowTimePicker] = useState(false);
 
   // Refs for debouncing and cancellation
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -224,7 +230,7 @@ export default function CheckInScreen() {
             latitude: place.location.latitude,
             longitude: place.location.longitude,
           },
-          address: place.formatted_address || place.name,
+          address: place.formatted_address || place.address || place.name,
           types: place.types || ["establishment"],
         });
       } else {
@@ -238,6 +244,32 @@ export default function CheckInScreen() {
       console.error("Error fetching place details:", error);
       Alert.alert("Error", "Failed to get location details for selected place");
     }
+  };
+
+  // Handle time picker change
+  const onTimeChange = (event: any, selectedDate?: Date) => {
+    const currentDate = selectedDate || selectedTime;
+    setShowTimePicker(Platform.OS === 'ios');
+    setSelectedTime(currentDate);
+  };
+
+  // Format time for display
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Create datetime for API call
+  const createDateTime = (time: Date) => {
+    const now = new Date();
+    const dateTime = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate(),
+      time.getHours(),
+      time.getMinutes(),
+      time.getSeconds()
+    );
+    return dateTime.toISOString();
   };
 
   // Handle manual check-in
@@ -256,6 +288,7 @@ export default function CheckInScreen() {
         name: selectedManualPlace.name,
         place_type: selectedManualPlace.types?.[0] || "Unknown",
         address: selectedManualPlace.address,
+        created_at: createDateTime(selectedTime),
       });
 
       // Reset manual check-in form
@@ -263,6 +296,7 @@ export default function CheckInScreen() {
       setSelectedManualPlace(null);
       setSuggestions([]);
       setShowSuggestions(false);
+      setSelectedTime(new Date()); // Reset time to current time
 
       setCheckInSuccess(true);
     } catch (error) {
@@ -390,6 +424,30 @@ export default function CheckInScreen() {
                 </Text>
               )}
 
+              {/* Time Picker Section */}
+              <View style={styles.timePickerContainer}>
+                <Text style={styles.manualInputLabel}>Check-in time</Text>
+                <TouchableOpacity
+                  style={styles.timePickerButton}
+                  onPress={() => setShowTimePicker(true)}
+                >
+                  <Text style={styles.timePickerText}>
+                    {formatTime(selectedTime)}
+                  </Text>
+                  <IconSymbol name="clock" size={20} color="#007AFF" />
+                </TouchableOpacity>
+
+                {showTimePicker && (
+                  <DateTimePicker
+                    value={selectedTime}
+                    mode="time"
+                    is24Hour={true}
+                    display="default"
+                    onChange={onTimeChange}
+                  />
+                )}
+              </View>
+
               <TouchableOpacity
                 style={[
                   styles.manualCheckInButton,
@@ -513,6 +571,30 @@ export default function CheckInScreen() {
                     Selected: {selectedManualPlace.name}
                   </Text>
                 )}
+
+                {/* Time Picker Section */}
+                <View style={styles.timePickerContainer}>
+                  <Text style={styles.manualInputLabel}>Check-in time</Text>
+                  <TouchableOpacity
+                    style={styles.timePickerButton}
+                    onPress={() => setShowTimePicker(true)}
+                  >
+                    <Text style={styles.timePickerText}>
+                      {formatTime(selectedTime)}
+                    </Text>
+                    <IconSymbol name="clock" size={20} color="#007AFF" />
+                  </TouchableOpacity>
+
+                  {showTimePicker && (
+                    <DateTimePicker
+                      value={selectedTime}
+                      mode="time"
+                      is24Hour={true}
+                      display="default"
+                      onChange={onTimeChange}
+                    />
+                  )}
+                </View>
 
                 <TouchableOpacity
                   style={[
@@ -841,6 +923,24 @@ const styles = StyleSheet.create({
     color: "#007AFF",
     fontStyle: "italic",
     marginTop: -10,
+  },
+  // Time picker styles
+  timePickerContainer: {
+    marginTop: 5,
+  },
+  timePickerButton: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 8,
+    padding: 12,
+    backgroundColor: "#fff",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  timePickerText: {
+    fontSize: 16,
+    color: "#333",
   },
   manualCheckInButton: {
     backgroundColor: "#007AFF",

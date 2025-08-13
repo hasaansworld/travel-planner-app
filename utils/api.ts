@@ -179,6 +179,7 @@ export const placesApi = {
     name: string;
     place_type: string;
     address?: string;
+    created_at?: string;
   }) => {
     const query = new URLSearchParams();
     query.append("user_id", params.user_id.toString());
@@ -187,6 +188,7 @@ export const placesApi = {
     query.append("name", params.name);
     query.append("place_type", params.place_type);
     if (params.address) query.append("address", params.address);
+    if (params.created_at) query.append("created_at", params.created_at);
 
     return api.get<{
       success: boolean;
