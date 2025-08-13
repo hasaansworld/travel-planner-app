@@ -68,7 +68,7 @@ const handleAutomaticCheckin = async (location: Location.LocationObject) => {
   try {
     const { userId, placesApiKey } = await getUserData();
     
-    if (!userId || !placesApiKey) {
+    if (!userId) {
       console.log("Missing user data for automatic check-in");
       return;
     }
@@ -81,12 +81,14 @@ const handleAutomaticCheckin = async (location: Location.LocationObject) => {
     const lat = location.coords.latitude;
     const long = location.coords.longitude;
 
+    const data = {
+        lat,
+        long,
+        places_api_key: placesApiKey || ""
+    };
+
     // Get nearby places
-    const response = await placesApi.getNearbyPlaces({
-      lat,
-      long,
-      places_api_key: placesApiKey
-    });
+    const response = await placesApi.getNearbyPlaces(data);
 
     if (!response.places || response.places.length === 0) {
       console.log("No nearby places found for automatic check-in");
