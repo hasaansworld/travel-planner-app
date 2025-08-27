@@ -487,8 +487,8 @@ export default function TravelPlanningScreen() {
             onValueChange={setRating}
             step={0.1}
             minimumTrackTintColor="#007AFF"
-            maximumTrackTintColor="#E0E0E0"
-            thumbStyle={styles.sliderThumb}
+            maximumTrackTintColor="#AAAAAA"
+            thumbTintColor="#007AFF"
           />
         </ThemedView>
 
@@ -505,8 +505,8 @@ export default function TravelPlanningScreen() {
             onValueChange={setRadius}
             step={1}
             minimumTrackTintColor="#007AFF"
-            maximumTrackTintColor="#E0E0E0"
-            thumbStyle={styles.sliderThumb}
+            maximumTrackTintColor="#AAAAAA"
+            thumbTintColor="#007AFF"
           />
         </ThemedView>
 
@@ -523,8 +523,8 @@ export default function TravelPlanningScreen() {
             onValueChange={setNumberOfDays}
             step={1}
             minimumTrackTintColor="#007AFF"
-            maximumTrackTintColor="#E0E0E0"
-            thumbStyle={styles.sliderThumb}
+            maximumTrackTintColor="#AAAAAA"
+            thumbTintColor="#007AFF"
           />
         </ThemedView>
 
@@ -714,11 +714,6 @@ const styles = StyleSheet.create({
   slider: {
     width: "100%",
     height: 40,
-  },
-  sliderThumb: {
-    backgroundColor: "#007AFF",
-    width: 20,
-    height: 20,
   },
   dateButton: {
     borderWidth: 1,
