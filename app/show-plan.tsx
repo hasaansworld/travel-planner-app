@@ -183,10 +183,12 @@ export default function ShowPlanScreen() {
         setPlanData([{ type: "original_request", value: originalRequest }]);
       }
 
+      let currentModel = "llama";
       const json = await AsyncStorage.getItem(SETTINGS_KEY);
       if (json !== null) {
         const settings = JSON.parse(json);
         setSelectedModel(settings.model || "llama");
+        currentModel = settings.model || "llama";
       }
 
       const response = await planApi.getPlan({
@@ -199,7 +201,7 @@ export default function ShowPlanScreen() {
         intent: message,
         user_id: userId,
         city_id: 1,
-        model: selectedModel,
+        model: currentModel,
         api_key: apiKey,
         places_api_key: placesApiKey,
       });
@@ -226,7 +228,7 @@ export default function ShowPlanScreen() {
       } else {
         fetchPlan();
       }
-  }, [plan_id, lat, long, radius, rating, numberOfDays, startDate, message, selectedModel]);
+  }, [plan_id, lat, long, radius, rating, numberOfDays, startDate, message]);
 
   // Handle place name input change with debouncing
   const handleMessageSend = async() => {
@@ -273,8 +275,36 @@ export default function ShowPlanScreen() {
         await fetchPlan();
       }
     } else if (item.action === "retry_update") {
-      // Re-add the original message and retry
-      setNewMessage(item.originalMessage || "");
+      // Re-add the original message and automatically retry the update
+      const originalMessage = item.originalMessage || "";
+      if (!originalMessage.trim()) return;
+
+      setPlanData((prev) => [...prev, { type: "message", value: originalMessage }]);
+      setLoadingUpdate(true);
+
+      try {
+        const response = await planApi.updatePlan({
+          plan_id: planID,
+          user_id: userId,
+          message: originalMessage,
+          model: selectedModel,
+          api_key: apiKey,
+          places_api_key: placesApiKey,
+        });
+
+        setPlanData((prev) => [...prev, { type: "plan", value: response }]);
+        setPlanID(response.travel_plan_id);
+        setSuccess(true);
+      } catch (error) {
+        console.error("Update Plan API error:", error);
+        setPlanData((prev) => [
+          ...prev,
+          { type: "error", value: "Failed to update plan. Please try again.", action: "retry_update", originalMessage: originalMessage }
+        ]);
+        setSuccess(false);
+      } finally {
+        setLoadingUpdate(false);
+      }
     }
   };
 

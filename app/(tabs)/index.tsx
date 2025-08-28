@@ -289,14 +289,14 @@ export default function TravelPlanningScreen() {
   }, []);
 
   // Update place name when location is selected from Jotai atom
-  // useEffect(() => {
-  //   if (selectedLocationFromAtom) {
-  //     setSelectedLocation(selectedLocationFromAtom);
-  //     // Only update place name field with the selected location name
-  //     setPlaceName(selectedLocationFromAtom.name || "");
-  //     setApiError(null); // Clear any existing errors
-  //   }
-  // }, [selectedLocationFromAtom]);
+  useEffect(() => {
+    if (selectedLocationFromAtom) {
+      setSelectedLocation(selectedLocationFromAtom);
+      // Only update place name field with the selected location name
+      setPlaceName(selectedLocationFromAtom.name || "");
+      setApiError(null); // Clear any existing errors
+    }
+  }, [selectedLocationFromAtom]);
 
   // Handle navigation result from map screen (keeping for backward compatibility)
   useFocusEffect(
